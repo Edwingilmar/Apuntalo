@@ -2,6 +2,9 @@ package com.gilmar.apuntalo
 
 import android.Manifest
 import android.app.*
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.widget.RemoteViews
 import android.content.*
 import android.os.Build
 import android.os.Bundle
@@ -32,6 +35,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
+private var appContext:Context?=null
 private val bg=Color(0xFF17191F)
 private val card=Color(0xFF252932)
 private val teal=Color(0xFF65B9A5)
@@ -39,7 +43,7 @@ private const val CHANNEL="apuntalo_tasks"
 private fun fmt(t:Long)=SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(Date(t))
 private fun parse(s:String):Long?=try { SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).apply{isLenient=false}.parse(s)?.time }catch(_:Exception){null}
 private fun read(p:android.content.SharedPreferences,k:String):JSONArray=try{JSONArray(p.getString(k,"[]"))}catch(_:Exception){JSONArray()}
-private fun save(p:android.content.SharedPreferences,k:String,a:JSONArray){p.edit().putString(k,a.toString()).apply()}
+private fun save(p:android.content.SharedPreferences,k:String,a:JSONArray){p.edit().putString(k,a.toString()).apply();if(k=="tasks")try{p.javaClass;val context=appContext;context?.sendBroadcast(Intent("com.gilmar.apuntalo.REFRESH_WIDGET").setPackage(context.packageName))}catch(_:Exception){}}
 private fun remove(a:JSONArray,id:Long):JSONArray=JSONArray().also{out->for(i in 0 until a.length()){val o=a.getJSONObject(i);if(o.optLong("id")!=id)out.put(o)}}
 private fun notifyAlarm(ctx:Context,id:Long,title:String,time:Long){
     if(!ctx.getSharedPreferences("apuntalo_alpha",0).getBoolean("notifications_enabled",true))return
@@ -76,6 +80,7 @@ class BootReceiver:android.content.BroadcastReceiver(){
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
  super.onCreate(savedInstanceState)
+ appContext=applicationContext
  getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Recordatorios de tareas",NotificationManager.IMPORTANCE_HIGH))
  setContent { Screen(this) }
  }
@@ -355,4 +360,27 @@ class MainActivity:ComponentActivity(){
  add=false
  }
  }){Text("Guardar")}},dismissButton={TextButton(onClick={add=false}){Text("Cancelar")}})
+}
+
+class TaskWidgetProvider:AppWidgetProvider(){
+ override fun onUpdate(context:Context,manager:AppWidgetManager,ids:IntArray){
+  val tasks=read(context.getSharedPreferences("apuntalo_alpha",0),"tasks")
+  val pending=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{!it.optBoolean("done")}.sortedBy{if(it.optLong("time")>0)it.optLong("time")else Long.MAX_VALUE}
+  val lines=if(pending.isEmpty())"Todo al día ✓" else pending.take(4).joinToString("\n"){ "• "+it.optString("title") }
+  ids.forEach{id->
+   val view=RemoteViews(context.packageName,com.gilmar.apuntalo.R.layout.apuntalo_widget)
+   view.setTextViewText(com.gilmar.apuntalo.R.id.widget_tasks,lines)
+   view.setTextViewText(com.gilmar.apuntalo.R.id.widget_header,"APÚNTALO · "+pending.size+" pendientes")
+   val open=PendingIntent.getActivity(context,0,Intent(context,MainActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+   view.setOnClickPendingIntent(com.gilmar.apuntalo.R.id.widget_root,open)
+   manager.updateAppWidget(id,view)
+  }
+ }
+ override fun onReceive(context:Context,intent:Intent){
+  super.onReceive(context,intent)
+  if(intent.action=="com.gilmar.apuntalo.REFRESH_WIDGET"){
+   val mgr=AppWidgetManager.getInstance(context)
+   onUpdate(context,mgr,mgr.getAppWidgetIds(android.content.ComponentName(context,TaskWidgetProvider::class.java)))
+  }
+ }
 }
