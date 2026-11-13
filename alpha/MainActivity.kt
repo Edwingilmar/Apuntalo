@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -86,7 +88,10 @@ class MainActivity:ComponentActivity(){
  super.onCreate(savedInstanceState)
  appContext=applicationContext
  getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Recordatorios de tareas",NotificationManager.IMPORTANCE_HIGH))
- setContent { AppEntry(this) }
+ setContent {
+ val density=LocalDensity.current
+ CompositionLocalProvider(LocalDensity provides Density(density.density,density.fontScale*1.12f)) { AppEntry(this) }
+ }
  }
 }
 @Composable fun AppEntry(activity:MainActivity){
