@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.*
@@ -398,9 +399,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
- Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(2.dp)){
  listOf(t("☑ Tareas"),t("▦ Calendario"),t("◈ Gastos"),t("🚗 Mi carro"),t("⚙ Config")).forEachIndexed{idx,name->
- Button(onClick={mainTab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(mainTab==idx)accent else panel)){Text(name,color=if(mainTab==idx)Color.Black else Color.White)}
+ Button(onClick={mainTab=idx},modifier=Modifier.weight(1f),contentPadding=PaddingValues(horizontal=1.dp),colors=ButtonDefaults.buttonColors(containerColor=if(mainTab==idx)accent else panel)){Text(name,color=if(mainTab==idx)Color.Black else Color.White,fontSize=10.sp,maxLines=1,softWrap=false)}
  }
  }
  if(mainTab==0){
