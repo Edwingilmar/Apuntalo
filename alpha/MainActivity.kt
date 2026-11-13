@@ -8,6 +8,11 @@ import android.widget.RemoteViews
 import android.content.*
 import android.os.Build
 import android.os.Bundle
+import android.location.LocationManager
+import android.location.Location
+import android.net.Uri
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -90,6 +95,42 @@ class BootReceiver:android.content.BroadcastReceiver(){
  }
 }
 class MainActivity:ComponentActivity(){
+ val carRevision=mutableIntStateOf(0)
+ private val carPermission=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){permissions->
+  if(permissions.values.any{it})saveCarLocation()
+ }
+ fun rememberCar(){
+  if(ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED ||
+     ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED)saveCarLocation()
+  else carPermission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))
+ }
+ private fun saveCarLocation(){
+  val lm=getSystemService(LocationManager::class.java)
+  val provider=when{
+   lm.isProviderEnabled(LocationManager.GPS_PROVIDER)->LocationManager.GPS_PROVIDER
+   lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)->LocationManager.NETWORK_PROVIDER
+   else->return
+  }
+  try{
+   if(Build.VERSION.SDK_INT>=30)lm.getCurrentLocation(provider,null,mainExecutor){location->location?.let{storeCar(it)}}
+   else lm.getLastKnownLocation(provider)?.let{storeCar(it)}
+  }catch(_:SecurityException){}
+ }
+ private fun storeCar(location:Location){
+  getSharedPreferences("apuntalo_alpha",0).edit().putString("car_lat",location.latitude.toString()).putString("car_lon",location.longitude.toString()).putLong("car_saved",System.currentTimeMillis()).apply()
+  carRevision.intValue++
+ }
+ fun navigateToCar(){
+  val p=getSharedPreferences("apuntalo_alpha",0)
+  val lat=p.getString("car_lat",null)?:return
+  val lon=p.getString("car_lon",null)?:return
+  startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$lat,$lon&travelmode=walking")))
+ }
+ fun clearCar(){
+  getSharedPreferences("apuntalo_alpha",0).edit().remove("car_lat").remove("car_lon").remove("car_saved").apply()
+  carRevision.intValue++
+ }
+
  private val wallpaperPicker=registerForActivityResult(ActivityResultContracts.GetContent()){uri->
   if(uri!=null)try{
    contentResolver.openInputStream(uri)?.use{input->File(filesDir,"wallpaper.jpg").outputStream().use{output->input.copyTo(output)}}
@@ -225,7 +266,13 @@ private val translations=mapOf(
  "Español" to listOf("Spanish","Spagnolo","Espagnol"),
  "Inglés" to listOf("English","Inglese","Anglais"),
  "Italiano" to listOf("Italian","Italiano","Italien"),
- "Francés" to listOf("French","Francese","Français")
+ "Francés" to listOf("French","Francese","Français"),
+ "🚗 Mi carro" to listOf("🚗 My car","🚗 La mia auto","🚗 Ma voiture"),
+ "Guardar ubicación" to listOf("Save location","Salva posizione","Enregistrer la position"),
+ "Llevarme al carro" to listOf("Navigate to car","Vai alla mia auto","Aller à ma voiture"),
+ "Quitar ubicación" to listOf("Clear location","Cancella posizione","Effacer la position"),
+ "Ubicación guardada" to listOf("Location saved","Posizione salvata","Position enregistrée"),
+ "No hay ubicación guardada" to listOf("No saved location","Nessuna posizione salvata","Aucune position enregistrée")
 )
 private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;"fr"->2;else->-1};return if(i<0)key else translations[key]?.get(i)?:key}
 @Composable fun Screen(activity:MainActivity){
@@ -329,8 +376,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
- Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf(t("☑ Tareas"),t("🛒 Compras"),t("▦ Agenda"),t("◈ Gastos"),t("⚙ Config")).forEachIndexed{idx,name->
+ Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+ listOf(t("☑ Tareas"),t("🛒 Compras"),t("▦ Agenda"),t("◈ Gastos"),t("⚙ Config"),t("🚗 Mi carro")).forEachIndexed{idx,name->
  Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else panel)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
  }
  }
@@ -469,7 +516,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }}
  }
- else->{
+ 4->{
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
  Text(t("Notificaciones"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
@@ -536,6 +583,20 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
+ }
+ }
+ else->{
+ val revision=activity.carRevision.intValue
+ val carLat=remember(revision){p.getString("car_lat",null)}
+ val carLon=remember(revision){p.getString("car_lon",null)}
+ Text(t("🚗 Mi carro"),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ Spacer(Modifier.height(16.dp))
+ Text(if(carLat!=null&&carLon!=null)t("Ubicación guardada") else t("No hay ubicación guardada"),color=foreground)
+ Spacer(Modifier.height(12.dp))
+ Button(onClick={activity.rememberCar()}){Text(t("Guardar ubicación"))}
+ if(carLat!=null&&carLon!=null){
+  Button(onClick={activity.navigateToCar()}){Text(t("Llevarme al carro"))}
+  OutlinedButton(onClick={activity.clearCar()}){Text(t("Quitar ubicación"))}
  }
  }
  }
