@@ -85,6 +85,7 @@ class MainActivity:ComponentActivity(){
  var tick by remember{mutableIntStateOf(0)}
  val tasks=remember(tick){read(p,"tasks")}
  val expenses=remember(tick){read(p,"expenses")}
+ val shopping=remember(tick){read(p,"shopping")}
  var tab by remember{mutableIntStateOf(0)}
  var monthOffset by remember{mutableIntStateOf(0)}
  var selectedDay by remember{mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))}
@@ -93,6 +94,9 @@ class MainActivity:ComponentActivity(){
  var whenText by remember{mutableStateOf("")}
  var amount by remember{mutableStateOf("")}
  var expenseCategory by remember{mutableStateOf("Otros")}
+ var shoppingMode by remember{mutableStateOf(false)}
+ var shoppingEntry by remember{mutableStateOf("")}
+ var budgetEditing by remember{mutableStateOf(false)}
  var income by remember{mutableStateOf(p.getString("income","4700")?:"4700")}
  var editing by remember{mutableLongStateOf(0)}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
@@ -127,6 +131,7 @@ class MainActivity:ComponentActivity(){
  fun refresh(){tick++}
  fun taskSave(a:JSONArray){save(p,"tasks",a);refresh()}
  fun expenseSave(a:JSONArray){save(p,"expenses",a);refresh()}
+ fun shoppingSave(a:JSONArray){save(p,"shopping",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
  Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f)))).padding(18.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(52.dp).background(accent.copy(alpha=0.2f),RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){Text("✎",style=MaterialTheme.typography.headlineLarge,color=accent)};Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
@@ -141,6 +146,26 @@ class MainActivity:ComponentActivity(){
  Spacer(Modifier.height(14.dp))
  when(tab){
  0,1->{
+ if(tab==0){
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){
+ TextButton(onClick={shoppingMode=!shoppingMode}){Text(if(shoppingMode)"Ver tareas" else "🛒 Compras")}
+ }
+ }
+ if(tab==0 && shoppingMode){
+ Text("Listas de compras",color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ Row(verticalAlignment=Alignment.CenterVertically){
+ OutlinedTextField(shoppingEntry,{shoppingEntry=it},modifier=Modifier.weight(1f),label={Text("Añadir producto")},singleLine=true)
+ Spacer(Modifier.width(6.dp))
+ Button(onClick={if(shoppingEntry.isNotBlank()){shopping.put(JSONObject().put("id",System.currentTimeMillis()).put("title",shoppingEntry.trim()).put("done",false));shoppingSave(shopping);shoppingEntry=""}}){Text("+")}
+ }
+ LazyColumn{items((0 until shopping.length()).map{shopping.getJSONObject(it)},key={it.optLong("id")}){item->
+ Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){
+ Checkbox(checked=item.optBoolean("done"),onCheckedChange={item.put("done",it);shoppingSave(shopping)})
+ Text(item.optString("title"),modifier=Modifier.weight(1f),color=foreground)
+ TextButton(onClick={shoppingSave(remove(shopping,item.optLong("id")))}){Text("Borrar")}
+ }
+ }}
+ }else{
  if(tab==1){
  val cal=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)}
  val month=SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(cal.time).replaceFirstChar{it.uppercase()}
@@ -180,6 +205,7 @@ class MainActivity:ComponentActivity(){
    TextButton(onClick={cancelAlarm(activity,o.optLong("id"));taskSave(remove(tasks,o.optLong("id")))}){Text("Borrar")}
   }}
  }}
+ }
  }
  2->{
  Text("Resumen financiero",color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
@@ -222,6 +248,31 @@ class MainActivity:ComponentActivity(){
  }
  }}
  if(total<=0.0)Text("Registra un gasto para ver tu gráfica.",color=Color.White.copy(alpha=0.7f))
+ }
+ }
+ Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
+ Column(Modifier.padding(16.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){
+ Text("PRESUPUESTOS",color=accent,modifier=Modifier.weight(1f),fontWeight=FontWeight.Bold)
+ TextButton(onClick={budgetEditing=!budgetEditing}){Text(if(budgetEditing)"Listo" else "Editar límites")}
+ }
+ categories.forEachIndexed{idx,cat->
+ val key="budget_"+cat
+ var limitText by remember(cat){mutableStateOf(p.getString(key,"")?:"")}
+ val limit=limitText.toDoubleOrNull()?:0.0
+ Column(Modifier.padding(vertical=5.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){
+ Text(cat,color=Color.White,modifier=Modifier.weight(1f))
+ Text("$%.2f".format(sums[idx])+(if(limit>0)" / $%.2f".format(limit)else""),color=if(limit>0 && sums[idx]>limit)Color(0xFFFF7F91) else Color.White)
+ }
+ if(budgetEditing){
+ OutlinedTextField(limitText,onValueChange={limitText=it;p.edit().putString(key,it).apply()},label={Text("Límite mensual de $cat")},singleLine=true)
+ }else if(limit>0){
+ LinearProgressIndicator(progress={(sums[idx]/limit).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(6.dp),color=if(sums[idx]>=limit)Color(0xFFFF7F91)else chartColors[idx],trackColor=Color.White.copy(alpha=0.12f))
+ if(sums[idx]>=limit*0.8)Text(if(sums[idx]>limit)"Presupuesto excedido"else"Te acercas al límite",color=Color(0xFFFFB86B),style=MaterialTheme.typography.labelSmall)
+ }
+ }
+ }
  }
  }
  Button(onClick={title="";amount="";expenseCategory="Otros";editing=0;add=true}){Text("+ Gasto")}
