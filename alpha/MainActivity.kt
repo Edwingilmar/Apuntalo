@@ -11,6 +11,10 @@ import android.os.Bundle
 import android.location.LocationManager
 import android.location.Location
 import android.net.Uri
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.WebSettings
+import androidx.compose.ui.viewinterop.AndroidView
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import android.graphics.BitmapFactory
@@ -129,12 +133,6 @@ class MainActivity:ComponentActivity(){
  private fun storeCar(location:Location){
   getSharedPreferences("apuntalo_alpha",0).edit().putString("car_lat",location.latitude.toString()).putString("car_lon",location.longitude.toString()).putLong("car_saved",System.currentTimeMillis()).apply()
   carRevision.intValue++
- }
- fun navigateToCar(){
-  val p=getSharedPreferences("apuntalo_alpha",0)
-  val lat=p.getString("car_lat",null)?:return
-  val lon=p.getString("car_lon",null)?:return
-  startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$lat,$lon&travelmode=walking")))
  }
  fun clearCar(){
   getSharedPreferences("apuntalo_alpha",0).edit().remove("car_lat").remove("car_lon").remove("car_saved").apply()
@@ -282,7 +280,8 @@ private val translations=mapOf(
  "Llevarme al carro" to listOf("Navigate to car","Vai alla mia auto","Aller à ma voiture"),
  "Quitar ubicación" to listOf("Clear location","Cancella posizione","Effacer la position"),
  "Ubicación guardada" to listOf("Location saved","Posizione salvata","Position enregistrée"),
- "No hay ubicación guardada" to listOf("No saved location","Nessuna posizione salvata","Aucune position enregistrée")
+ "No hay ubicación guardada" to listOf("No saved location","Nessuna posizione salvata","Aucune position enregistrée"),
+ "Cerrar mapa" to listOf("Close map","Chiudi mappa","Fermer la carte")
 )
 private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;"fr"->2;else->-1};return if(i<0)key else translations[key]?.get(i)?:key}
 @Composable fun Screen(activity:MainActivity){
@@ -615,14 +614,29 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val revision=activity.carRevision.intValue
  val carLat=remember(revision){p.getString("car_lat",null)}
  val carLon=remember(revision){p.getString("car_lon",null)}
+ var showCarMap by remember{mutableStateOf(false)}
  Text(t("🚗 Mi carro"),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  Spacer(Modifier.height(16.dp))
  Text(if(carLat!=null&&carLon!=null)t("Ubicación guardada") else t("No hay ubicación guardada"),color=foreground)
  Spacer(Modifier.height(12.dp))
- Button(onClick={activity.rememberCar()}){Text(t("Guardar ubicación"))}
+ Button(onClick={showCarMap=false;activity.rememberCar()}){Text(t("Guardar ubicación"))}
  if(carLat!=null&&carLon!=null){
-  Button(onClick={activity.navigateToCar()}){Text(t("Llevarme al carro"))}
-  OutlinedButton(onClick={activity.clearCar()}){Text(t("Quitar ubicación"))}
+  Button(onClick={showCarMap=!showCarMap}){Text(if(showCarMap)"✕ "+t("Cerrar mapa") else t("Llevarme al carro"))}
+  OutlinedButton(onClick={showCarMap=false;activity.clearCar()}){Text(t("Quitar ubicación"))}
+  if(showCarMap){
+   val mapsUrl="https://www.google.com/maps/dir/?api=1&destination=$carLat,$carLon&travelmode=walking"
+   AndroidView(
+    factory={context->WebView(context).apply{
+     settings.javaScriptEnabled=true
+     settings.domStorageEnabled=true
+     settings.setGeolocationEnabled(true)
+     webViewClient=WebViewClient()
+     loadUrl(mapsUrl)
+    }},
+    update={web->if(web.url!=mapsUrl&&web.url==null)web.loadUrl(mapsUrl)},
+    modifier=Modifier.fillMaxWidth().height(430.dp)
+   )
+  }
  }
  }
  }
