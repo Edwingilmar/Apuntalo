@@ -131,7 +131,7 @@ class MainActivity:ComponentActivity(){
  var shoppingMode by remember{mutableStateOf(false)}
  var shoppingEntry by remember{mutableStateOf("")}
  var budgetEditing by remember{mutableStateOf(false)}
- var income by remember{mutableStateOf(p.getString("income_"+monthKey(),"0")?:"0")}
+ var income by remember{mutableStateOf(p.getString("income_"+monthKey(),p.getString("income_default","0"))?:"0")}
  var editing by remember{mutableLongStateOf(0)}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
  var randomTheme by remember{mutableStateOf(p.getBoolean("random_theme",false))}
@@ -243,7 +243,7 @@ class MainActivity:ComponentActivity(){
  }
  2->{
  Text("Resumen financiero · "+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
- OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).apply()},label={Text("Ingreso mensual (ej. 2500.00)")},singleLine=true)
+ OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text("Ingreso mensual (ej. 2500.00)")},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
  Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text("BALANCE DISPONIBLE",color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
