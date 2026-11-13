@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -113,8 +114,18 @@ class MainActivity:ComponentActivity(){
  var showingSplash by remember{mutableStateOf(true)}
  LaunchedEffect(Unit){delay(2000L);showingSplash=false}
  if(showingSplash){
- Box(Modifier.fillMaxSize().background(Color.White),contentAlignment=Alignment.Center){
+ BoxWithConstraints(Modifier.fillMaxSize().background(Color.White)){
  Image(painter=painterResource(id=R.drawable.apuntalo_splash),contentDescription="APÚNTALO",contentScale=ContentScale.Fit,modifier=Modifier.fillMaxSize())
+ val imageWidth=minOf(maxWidth,maxHeight*(2f/3f))
+ val imageHeight=imageWidth*1.5f
+ val left=(maxWidth-imageWidth)/2
+ val top=(maxHeight-imageHeight)/2
+ val centerX=left+imageWidth*0.5f
+ val centerY=top+imageHeight*(809f/1080f)
+ val coverSize=imageWidth*0.18f
+ Box(Modifier.offset(x=centerX-coverSize/2,y=centerY-coverSize/2).size(coverSize).background(Color(0xFFFEFEFD),CircleShape))
+ val spinnerSize=imageWidth*0.125f
+ CircularProgressIndicator(modifier=Modifier.offset(x=centerX-spinnerSize/2,y=centerY-spinnerSize/2).size(spinnerSize),color=Color(0xFF12B9AA),trackColor=Color(0xFFDADADA),strokeWidth=4.dp)
  }
  }else Screen(activity)
 }
