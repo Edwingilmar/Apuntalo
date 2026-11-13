@@ -223,7 +223,7 @@ private val translations=mapOf(
  "Creada por Gilmar" to listOf("Created by Gilmar","Creata da Gilmar","Créée par Gilmar"),
  "☑ Tareas" to listOf("☑ Tasks","☑ Attività","☑ Tâches"),
  "🛒 Compras" to listOf("🛒 Shopping","🛒 Acquisti","🛒 Achats"),
- "▦ Agenda" to listOf("▦ Calendar","▦ Agenda","▦ Agenda"),
+ "▦ Calendario" to listOf("▦ Calendar","▦ Calendario","▦ Calendario"),
  "◈ Gastos" to listOf("◈ Expenses","◈ Spese","◈ Dépenses"),
  "⚙ Config" to listOf("⚙ Settings","⚙ Impostazioni","⚙ Paramètres"),
  "Listas de compras" to listOf("Shopping lists","Liste della spesa","Listes de courses"),
@@ -348,6 +348,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  "Military"->Color(0xFF3C4232);"OLED Black"->Color(0xFF141414)
  "Arctic","Pure White"->Color(0xFF33475A);else->card
  }
+ val glassPanel=panel.copy(alpha=0.78f)
  val foreground=if(theme=="Pure White"||theme=="Arctic")Color.Black else Color.White
  val wallpaperVersion=activity.wallpaperRevision.intValue
  val wallpaper=remember(wallpaperVersion){runCatching{BitmapFactory.decodeFile(File(activity.filesDir,"wallpaper.jpg").absolutePath)?.asImageBitmap()}.getOrNull()}
@@ -362,19 +363,19 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val w=size.width;val h=size.height
  drawRect(brush=Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.26f)),startY=0f,endY=h))
  val wave1=Path().apply{
- moveTo(0f,h*.78f)
- cubicTo(w*.22f,h*.91f,w*.43f,h*.94f,w*.65f,h*.78f)
- cubicTo(w*.83f,h*.66f,w*.91f,h*.62f,w,h*.60f)
+ moveTo(0f,h*.12f)
+ cubicTo(w*.22f,h*.44f,w*.43f,h*.02f,w*.65f,h*.30f)
+ cubicTo(w*.83f,h*.53f,w*.91f,h*.20f,w,h*.26f)
  lineTo(w,h);lineTo(0f,h);close()
  }
- drawPath(wave1,brush=Brush.verticalGradient(listOf(accent.copy(alpha=.05f),accent.copy(alpha=.72f),accent.copy(alpha=.10f)),startY=h*.60f,endY=h))
+ drawPath(wave1,brush=Brush.verticalGradient(listOf(accent.copy(alpha=.05f),accent.copy(alpha=.72f),accent.copy(alpha=.10f)),startY=h*.12f,endY=h))
  val wave2=Path().apply{
- moveTo(0f,h*.89f)
- cubicTo(w*.28f,h*.82f,w*.41f,h*1.04f,w*.66f,h*.91f)
- cubicTo(w*.86f,h*.82f,w*.92f,h*.87f,w,h*.83f)
+ moveTo(0f,h*.55f)
+ cubicTo(w*.28f,h*.24f,w*.41f,h*.85f,w*.66f,h*.58f)
+ cubicTo(w*.86f,h*.37f,w*.92f,h*.66f,w,h*.51f)
  lineTo(w,h);lineTo(0f,h);close()
  }
- drawPath(wave2,brush=Brush.verticalGradient(listOf(accent.copy(alpha=.04f),accent.copy(alpha=.42f),background.copy(alpha=.86f)),startY=h*.82f,endY=h))
+ drawPath(wave2,brush=Brush.verticalGradient(listOf(accent.copy(alpha=.04f),accent.copy(alpha=.42f),background.copy(alpha=.86f)),startY=h*.28f,endY=h))
  val line1=Path().apply{
  moveTo(0f,h*.78f)
  cubicTo(w*.22f,h*.91f,w*.43f,h*.94f,w*.65f,h*.78f)
@@ -391,14 +392,14 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }else Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize().alpha(wallpaperDim))
  Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
- Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(60.dp))
+ Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo original de la libreta y el lápiz",contentScale=ContentScale.Fit,modifier=Modifier.size(96.dp))
  Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=if(theme=="Pure White"||theme=="Arctic")Color(0xFF14252E) else Color.White)
  Text(t("que se te olvida"),color=accent)
  }
  Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf(t("☑ Tareas"),t("▦ Agenda"),t("◈ Gastos"),t("🚗 Mi carro"),t("⚙ Config")).forEachIndexed{idx,name->
+ listOf(t("☑ Tareas"),t("▦ Calendario"),t("◈ Gastos"),t("🚗 Mi carro"),t("⚙ Config")).forEachIndexed{idx,name->
  Button(onClick={mainTab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(mainTab==idx)accent else panel)){Text(name,color=if(mainTab==idx)Color.Black else Color.White)}
  }
  }
@@ -439,7 +440,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val month=SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(cal.time).replaceFirstChar{it.uppercase()}
  val offset=(cal.get(Calendar.DAY_OF_WEEK)+5)%7
  val days=cal.getActualMaximum(Calendar.DAY_OF_MONTH)
- Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
  Column(Modifier.padding(14.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={monthOffset--;selectedDay=1}){Text("‹",style=MaterialTheme.typography.headlineSmall)};Text(month,modifier=Modifier.weight(1f),color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);TextButton(onClick={monthOffset++;selectedDay=1}){Text("›",style=MaterialTheme.typography.headlineSmall)}}
  Row {listOf("L","M","X","J","V","S","D").forEach{Text(it,modifier=Modifier.weight(1f),color=accent,style=MaterialTheme.typography.labelMedium)}}
@@ -457,10 +458,10 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
 
- Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;editing=0;add=true}){Text(t("+ Tarea"))}}
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;editing=0;add=true}){Text(t("+ Tarea"))}}
  val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  LazyColumn {items(sorted,key={it.optLong("id")}){o->
-  Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=panel)){
+  Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
   Row(Modifier.padding(10.dp)){
    Checkbox(checked=o.optBoolean("done"),onCheckedChange={done->
     o.put("done",done);if(done)cancelAlarm(activity,o.optLong("id")) else if(o.optLong("time")>System.currentTimeMillis())notifyAlarm(activity,o.optLong("id"),o.optString("title"),o.optLong("time"));taskSave(tasks)
@@ -480,11 +481,11 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual"))},placeholder={Text(t("Ejemplo: $2,000.00"))},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
- Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
+ Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
  val categories=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  val chartColors=listOf(Color(0xFF62C4B4),Color(0xFFFFB86B),Color(0xFF8DA8FF),Color(0xFFCE8DF4),Color(0xFFFF7F91),Color(0xFFADB6C5))
  val sums=categories.map{category->(0 until expenses.length()).sumOf{idx->val e=expenses.getJSONObject(idx);if(e.optString("category","Otros")==category)e.optDouble("amount").coerceAtLeast(0.0) else 0.0}}
- Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
+ Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
  Column(Modifier.padding(18.dp)){
  Text(t("DISTRIBUCIÓN DE GASTOS"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold)
  Spacer(Modifier.height(14.dp))
@@ -518,7 +519,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  if(total<=0.0)Text(t("Registra un gasto para ver tu gráfica."),color=Color.White.copy(alpha=0.7f))
  }
  }
- Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
+ Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
  Column(Modifier.padding(16.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){
  Text(t("PRESUPUESTOS"),color=accent,modifier=Modifier.weight(1f),fontWeight=FontWeight.Bold)
