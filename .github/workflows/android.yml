@@ -116,6 +116,41 @@ jobs:
           manifest.write_text(content)
           PY
 
+      - name: Install branded launcher icon
+        shell: bash
+        run: |
+          mkdir -p "$PROJECT_DIR/app/src/main/res/drawable"
+          cat > "$PROJECT_DIR/app/src/main/res/drawable/apuntalo_launcher.xml" <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+            <path android:fillColor="#17191F" android:pathData="M0,0h108v108h-108z"/>
+            <path android:fillColor="#008F85" android:pathData="M21,17 L79,17 Q85,17 85,23 L85,89 Q85,95 79,95 L21,95 Q15,95 15,89 L15,23 Q15,17 21,17 Z"/>
+            <path android:fillColor="#FFF4DE" android:pathData="M27,13 L73,13 Q79,13 79,19 L79,83 Q79,89 73,89 L27,89 Q21,89 21,83 L21,19 Q21,13 27,13 Z"/>
+            <path android:strokeColor="#004E4D" android:strokeWidth="4" android:strokeLineCap="round"
+                android:pathData="M33,13v11 M47,13v11 M61,13v11"/>
+            <path android:strokeColor="#A4A6A4" android:strokeWidth="3" android:strokeLineCap="round"
+                android:pathData="M35,37h26 M35,50h23 M35,63h20 M35,76h17"/>
+            <path android:strokeColor="#FFC247" android:strokeWidth="11" android:strokeLineCap="round"
+                android:pathData="M83,27 L58,79"/>
+            <path android:strokeColor="#004E4D" android:strokeWidth="2" android:strokeLineCap="round"
+                android:pathData="M83,27 L58,79"/>
+            <path android:fillColor="#F48D9D" android:pathData="M79,23 L84,13 Q87,8 92,11 L96,13 Q101,16 98,22 L93,32 Z"/>
+            <path android:fillColor="#564638" android:pathData="M58,79 L51,91 L54,77 Z"/>
+          </vector>
+          EOF
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          manifest=Path(os.environ["PROJECT_DIR"])/"app/src/main/AndroidManifest.xml"
+          s=manifest.read_text()
+          s=s.replace('android:icon="@android:drawable/ic_menu_edit"', 'android:icon="@drawable/apuntalo_launcher"')
+          if 'android:roundIcon=' in s:
+              import re
+              s=re.sub(r'android:roundIcon="[^"]*"', 'android:roundIcon="@drawable/apuntalo_launcher"',s)
+          manifest.write_text(s)
+          PY
+
       - name: Build APK
         run: gradle -p "$PROJECT_DIR" assembleDebug
 
