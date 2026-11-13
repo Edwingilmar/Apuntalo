@@ -262,6 +262,9 @@ private val translations=mapOf(
  "Cantidad" to listOf("Amount","Importo","Montant"),
  "Categoría" to listOf("Category","Categoria","Catégorie"),
  "Fecha y hora (dd/MM/yyyy HH:mm)" to listOf("Date and time (dd/MM/yyyy HH:mm)","Data e ora (dd/MM/yyyy HH:mm)","Date et heure (dd/MM/yyyy HH:mm)"),
+ "Recordarme con notificación" to listOf("Remind me with a notification","Ricordamelo con una notifica","Me rappeler par notification"),
+ "Elegir fecha" to listOf("Choose date","Scegli la data","Choisir la date"),
+ "Elegir hora" to listOf("Choose time","Scegli l’ora","Choisir l’heure"),
  "Deja vacío para una tarea sin alarma" to listOf("Leave blank for a task without an alarm","Lascia vuoto per un'attività senza allarme","Laissez vide pour une tâche sans alarme"),
  "Guardar" to listOf("Save","Salva","Enregistrer"),
  "Cancelar" to listOf("Cancel","Annulla","Annuler"),
@@ -303,6 +306,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  var add by remember{mutableStateOf(false)}
  var title by remember{mutableStateOf("")}
  var whenText by remember{mutableStateOf("")}
+ var remindMe by remember{mutableStateOf(false)}
  var amount by remember{mutableStateOf("")}
  var expenseCategory by remember{mutableStateOf("Otros")}
  var shoppingMode by remember{mutableStateOf(false)}
@@ -448,7 +452,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
 
- Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";editing=0;add=true}){Text(t("+ Tarea"))}}
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;editing=0;add=true}){Text(t("+ Tarea"))}}
  val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  LazyColumn {items(sorted,key={it.optLong("id")}){o->
   Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=panel)){
@@ -456,7 +460,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
    Checkbox(checked=o.optBoolean("done"),onCheckedChange={done->
     o.put("done",done);if(done)cancelAlarm(activity,o.optLong("id")) else if(o.optLong("time")>System.currentTimeMillis())notifyAlarm(activity,o.optLong("id"),o.optString("title"),o.optLong("time"));taskSave(tasks)
    })
-   Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");whenText=if(o.optLong("time")>0)fmt(o.optLong("time")) else "";add=true}){
+   Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");whenText=if(o.optLong("time")>0)fmt(o.optLong("time")) else "";remindMe=o.optLong("time")>0;add=true}){
     Text(o.optString("title"),color=Color.White,fontWeight=FontWeight.SemiBold)
     if(o.optLong("time")>0)Text(fmt(o.optLong("time")),color=teal,style=MaterialTheme.typography.bodySmall)
    }
@@ -655,8 +659,27 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }}
  }
  else {
- OutlinedTextField(whenText,{whenText=it},label={Text(t("Fecha y hora (dd/MM/yyyy HH:mm)"))})
- Text(t("Deja vacío para una tarea sin alarma"),style=MaterialTheme.typography.bodySmall)
+ Row(verticalAlignment=Alignment.CenterVertically){
+ Checkbox(checked=remindMe,onCheckedChange={remindMe=it;if(!it)whenText=""})
+ Text(t("Recordarme con notificación"),modifier=Modifier.clickable{remindMe=!remindMe;if(!remindMe)whenText=""})
+ }
+ if(remindMe){
+ val picked=remember(whenText){(if(whenText.isBlank())null else parse(whenText))?.let{Date(it)}?:Date()}
+ val cal=Calendar.getInstance().apply{time=picked}
+ OutlinedButton(onClick={
+  android.app.DatePickerDialog(activity,{_,year,month,day->
+   val next=Calendar.getInstance().apply{time=picked;set(Calendar.YEAR,year);set(Calendar.MONTH,month);set(Calendar.DAY_OF_MONTH,day)}
+   whenText=fmt(next.timeInMillis)
+  },cal.get(Calendar.YEAR),cal.get(Calendar.MONTH),cal.get(Calendar.DAY_OF_MONTH)).show()
+ }){Text(t("Elegir fecha"))}
+ OutlinedButton(onClick={
+  android.app.TimePickerDialog(activity,{_,hour,minute->
+   val next=Calendar.getInstance().apply{time=picked;set(Calendar.HOUR_OF_DAY,hour);set(Calendar.MINUTE,minute);set(Calendar.SECOND,0)}
+   whenText=fmt(next.timeInMillis)
+  },cal.get(Calendar.HOUR_OF_DAY),cal.get(Calendar.MINUTE),false).show()
+ }){Text(t("Elegir hora"))}
+ if(whenText.isNotBlank())Text(whenText,style=MaterialTheme.typography.bodySmall)
+ }
  }
  }
  },confirmButton={TextButton(onClick={
@@ -667,7 +690,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory).put("month",currentMonth))
  expenseSave(a)
  }else{
- val t=if(whenText.isBlank())0L else parse(whenText)?:-1L
+ val t=if(!remindMe)0L else if(whenText.isBlank())-1L else parse(whenText)?:-1L
  if(t>=0){
  val old=(0 until tasks.length()).firstOrNull{tasks.getJSONObject(it).optLong("id")==id}?.let{tasks.getJSONObject(it)}
  val a=if(editing!=0L)remove(tasks,id)else tasks
