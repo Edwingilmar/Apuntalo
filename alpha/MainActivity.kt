@@ -763,7 +763,20 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
 
  Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;taskRecurring=false;editing=0;add=true}){Text(t("+ Tarea"))}}
- val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
+ val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{task->
+  if(tab==0)true
+  else{
+   val taskTime=task.optLong("time")
+   if(taskTime<=0L)false
+   else{
+    val taskDate=Calendar.getInstance().apply{timeInMillis=taskTime}
+    val selectedDate=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)}
+    taskDate.get(Calendar.YEAR)==selectedDate.get(Calendar.YEAR)&&
+     taskDate.get(Calendar.MONTH)==selectedDate.get(Calendar.MONTH)&&
+     taskDate.get(Calendar.DAY_OF_MONTH)==selectedDay
+   }
+  }
+ }.sortedWith(compareBy<JSONObject>({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  Column {(sorted).forEach{o->
   Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
   Row(Modifier.padding(10.dp)){
