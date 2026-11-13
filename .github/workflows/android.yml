@@ -115,7 +115,20 @@ jobs:
               folder=base/('mipmap-'+density)
               folder.mkdir(parents=True,exist_ok=True)
               source.resize((size,size),Image.Resampling.LANCZOS).save(folder/'apuntalo_launcher.png')
-          source.resize((512,512),Image.Resampling.LANCZOS).save(base/"drawable-nodpi/apuntalo_launcher_logo.png")
+          # Only the in-app home logo gets transparency; launcher and splash remain unchanged.
+          from PIL import ImageDraw
+          logo=source.resize((512,512),Image.Resampling.LANCZOS).convert("RGBA")
+          pixels=logo.load()
+          # Make the near-white background transparent, including antialiased edges.
+          for y in range(logo.height):
+              for x in range(logo.width):
+                  red,green,blue,_=pixels[x,y]
+                  light=min(red,green,blue)
+                  if light>=245:
+                      pixels[x,y]=(red,green,blue,0)
+                  elif light>215 and max(red,green,blue)-light<24:
+                      pixels[x,y]=(red,green,blue,int(255*(245-light)/30))
+          logo.save(base/"drawable-nodpi/apuntalo_launcher_logo.png")
           manifest=base.parent/"AndroidManifest.xml"
           content=manifest.read_text()
           content=re.sub(r'android:icon="[^"]*"', 'android:icon="@mipmap/apuntalo_launcher"',content)
