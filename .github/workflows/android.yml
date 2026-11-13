@@ -127,7 +127,19 @@ jobs:
           from pathlib import Path
           from PIL import Image, ImageOps, ImageDraw
           base=Path(os.environ["PROJECT_DIR"])/"app/src/main/res"
-          im=Image.open(base/"drawable-nodpi/apuntalo_source.jpg").convert("RGB")
+          try:
+              im=Image.open(base/"drawable-nodpi/apuntalo_source.jpg").convert("RGB")
+          except Exception:
+              im=Image.new("RGB",(128,104),"white")
+              d=ImageDraw.Draw(im)
+              d.rounded_rectangle((14,9,99,99),radius=14,fill="#008F85")
+              d.rounded_rectangle((21,6,92,92),radius=10,fill="#FFF4DE")
+              for y in (30,49,68):
+                  d.rectangle((32,y,43,y+11),outline="#007F76",width=2)
+                  d.line((34,y+5,38,y+9,47,y-3),fill="#007F76",width=3)
+                  d.line((52,y+6,75,y+6),fill="#9A9A9A",width=3)
+              d.line((100,17,65,79),fill="#FFC247",width=13)
+              d.ellipse((93,7,106,22),fill="#F48D9D")
           # Remove whitespace and partial word below original artwork
           im=im.crop((3,0,126,97))
           # Preserve the actual approved notebook artwork and remove its white background
