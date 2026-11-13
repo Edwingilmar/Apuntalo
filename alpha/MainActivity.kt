@@ -633,29 +633,20 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val revision=activity.carRevision.intValue
  val carLat=remember(revision){p.getString("car_lat",null)}
  val carLon=remember(revision){p.getString("car_lon",null)}
- var showCarMap by remember{mutableStateOf(false)}
  Text(t("🚗 Mi carro"),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  Spacer(Modifier.height(16.dp))
  Text(if(carLat!=null&&carLon!=null)t("Ubicación guardada") else t("No hay ubicación guardada"),color=foreground)
  Spacer(Modifier.height(12.dp))
- Button(onClick={showCarMap=false;activity.rememberCar()}){Text(t("Guardar ubicación"))}
+ Button(onClick={activity.rememberCar()}){Text(t("Guardar ubicación"))}
  if(carLat!=null&&carLon!=null){
-  Button(onClick={showCarMap=!showCarMap}){Text(if(showCarMap)"✕ "+t("Cerrar mapa") else t("Llevarme al carro"))}
-  OutlinedButton(onClick={showCarMap=false;activity.clearCar()}){Text(t("Quitar ubicación"))}
-  if(showCarMap){
-   val mapsUrl="https://www.google.com/maps/dir/?api=1&destination=$carLat,$carLon&travelmode=walking"
-   AndroidView(
-    factory={context->WebView(context).apply{
-     settings.javaScriptEnabled=true
-     settings.domStorageEnabled=true
-     settings.setGeolocationEnabled(true)
-     webViewClient=WebViewClient()
-     loadUrl(mapsUrl)
-    }},
-    update={web->if(web.url!=mapsUrl&&web.url==null)web.loadUrl(mapsUrl)},
-    modifier=Modifier.fillMaxWidth().height(430.dp)
-   )
-  }
+  Button(onClick={
+   val mapsUrl=Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$carLat,$carLon&travelmode=walking")
+   val mapsIntent=Intent(Intent.ACTION_VIEW,mapsUrl).apply{setPackage("com.google.android.apps.maps")}
+   try{activity.startActivity(mapsIntent)}catch(_:android.content.ActivityNotFoundException){
+    activity.startActivity(Intent(Intent.ACTION_VIEW,mapsUrl))
+   }
+  }){Text(t("Llevarme al carro"))}
+  OutlinedButton(onClick={activity.clearCar()}){Text(t("Quitar ubicación"))}
  }
  }
  }
