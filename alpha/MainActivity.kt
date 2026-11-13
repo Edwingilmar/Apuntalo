@@ -156,6 +156,54 @@ private fun syncDeviceCalendar(ctx:Context,preferLocal:Boolean=false):Int{
  if(changed)save(prefs,"tasks",tasks)
  return synced
 }
+private fun carryRecurringTasks(p:android.content.SharedPreferences,currentMonth:String){
+ val tasks=read(p,"tasks")
+ val existing=mutableSetOf<String>()
+ val latest=mutableMapOf<Long,JSONObject>()
+ for(i in 0 until tasks.length()){
+  val item=tasks.getJSONObject(i)
+  val origin=item.optLong("recurringOrigin",item.optLong("id"))
+  val month=item.optString("month",monthKey(item.optLong("id",System.currentTimeMillis())))
+  existing.add("$origin:$month")
+  if(month<=currentMonth&&(latest[origin]==null||month>latest[origin]!!.optString("month","")))
+   latest[origin]=item
+ }
+ var changed=false
+ for((origin,item) in latest){
+  if(!item.optBoolean("recurring",false))continue
+  val start=item.optString("month",monthKey(item.optLong("id",System.currentTimeMillis())))
+  if(start>=currentMonth)continue
+  val date=runCatching{SimpleDateFormat("yyyy-MM",Locale.US).apply{isLenient=false}.parse(start)}.getOrNull()?:continue
+  val cursor=Calendar.getInstance().apply{time=date;set(Calendar.DAY_OF_MONTH,1)}
+  val end=Calendar.getInstance().apply{time=SimpleDateFormat("yyyy-MM",Locale.US).parse(currentMonth)!!;set(Calendar.DAY_OF_MONTH,1)}
+  var count=0
+  while(cursor.before(end)&&count++<240){
+   cursor.add(Calendar.MONTH,1)
+   val key=SimpleDateFormat("yyyy-MM",Locale.US).format(cursor.time)
+   if("$origin:$key" !in existing){
+    val copy=JSONObject(item.toString())
+    copy.put("id",System.currentTimeMillis()+tasks.length()+count+origin%10000)
+    copy.put("month",key).put("recurringOrigin",origin).put("done",false)
+    val oldTime=item.optLong("time")
+    if(oldTime>0){
+     val oldCal=Calendar.getInstance().apply{timeInMillis=oldTime}
+     val newCal=Calendar.getInstance().apply{
+      time=cursor.time
+      set(Calendar.DAY_OF_MONTH,minOf(oldCal.get(Calendar.DAY_OF_MONTH),getActualMaximum(Calendar.DAY_OF_MONTH)))
+      set(Calendar.HOUR_OF_DAY,oldCal.get(Calendar.HOUR_OF_DAY))
+      set(Calendar.MINUTE,oldCal.get(Calendar.MINUTE))
+      set(Calendar.SECOND,0)
+     }
+     copy.put("time",newCal.timeInMillis)
+    }
+    tasks.put(copy)
+    existing.add("$origin:$key")
+    changed=true
+   }
+  }
+ }
+ if(changed)save(p,"tasks",tasks)
+}
 private fun carryRecurringExpenses(p:android.content.SharedPreferences,currentMonth:String){
  val source=read(p,"expenses")
  val existing=mutableSetOf<String>()
@@ -504,8 +552,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
 @Composable fun Screen(activity:MainActivity){
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
  var tick by remember{mutableIntStateOf(0)}
- val tasks=remember(tick){read(p,"tasks")}
  val currentMonth=monthKey()
+ remember(currentMonth){carryRecurringTasks(p,currentMonth);true}
+ val tasks=remember(tick){read(p,"tasks")}
  remember(currentMonth){carryRecurringExpenses(p,currentMonth);true}
  val allExpenses=remember(tick){read(p,"expenses")}
  val expenses=remember(tick,currentMonth){JSONArray().also{out->for(i in 0 until allExpenses.length()){val e=allExpenses.getJSONObject(i);if(e.optString("month",monthKey(e.optLong("id",System.currentTimeMillis())))==currentMonth)out.put(e)}}}
@@ -521,6 +570,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  var title by remember{mutableStateOf("")}
  var whenText by remember{mutableStateOf("")}
  var remindMe by remember{mutableStateOf(false)}
+ var taskRecurring by remember{mutableStateOf(false)}
  var amount by remember{mutableStateOf("")}
  var expenseCategory by remember{mutableStateOf("Otros")}
  var expenseRecurring by remember{mutableStateOf(false)}
@@ -678,16 +728,16 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
 
- Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;editing=0;add=true}){Text(t("+ Tarea"))}}
- val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;taskRecurring=false;editing=0;add=true}){Text(t("+ Tarea"))}}
+ val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{(tab!=0||it.optString("month",monthKey(it.optLong("id",System.currentTimeMillis())))==currentMonth) && (tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  Column {(sorted).forEach{o->
   Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
   Row(Modifier.padding(10.dp)){
    Checkbox(checked=o.optBoolean("done"),onCheckedChange={done->
     o.put("done",done);if(done)cancelAlarm(activity,o.optLong("id")) else if(o.optLong("time")>System.currentTimeMillis())notifyAlarm(activity,o.optLong("id"),o.optString("title"),o.optLong("time"));taskSave(tasks)
    })
-   Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");whenText=if(o.optLong("time")>0)fmt(o.optLong("time")) else "";remindMe=o.optLong("time")>0;add=true}){
-    Text(o.optString("title"),color=Color.White,fontWeight=FontWeight.SemiBold)
+   Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");whenText=if(o.optLong("time")>0)fmt(o.optLong("time")) else "";remindMe=o.optLong("time")>0;taskRecurring=o.optBoolean("recurring",false);add=true}){
+    Text(o.optString("title")+(if(o.optBoolean("recurring",false))" · ↻" else ""),color=Color.White,fontWeight=FontWeight.SemiBold)
     if(o.optLong("time")>0)Text(fmt(o.optLong("time")),color=teal,style=MaterialTheme.typography.bodySmall)
    }
    TextButton(onClick={shareTask(activity,o.optString("title"),o.optLong("time"))},contentPadding=PaddingValues(horizontal=4.dp)){Text(t("Compartir"),color=accent)}
@@ -885,6 +935,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }}
  }
  else {
+ Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=taskRecurring,onCheckedChange={taskRecurring=it});Text("Repetir esta tarea cada mes")}
  Row(verticalAlignment=Alignment.CenterVertically){
  Checkbox(checked=remindMe,onCheckedChange={remindMe=it;if(!it)whenText=""})
  Text(t("Recordarme con notificación"),modifier=Modifier.clickable{remindMe=!remindMe;if(!remindMe)whenText=""})
@@ -921,7 +972,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  if(t>=0){
  val old=(0 until tasks.length()).firstOrNull{tasks.getJSONObject(it).optLong("id")==id}?.let{tasks.getJSONObject(it)}
  val a=if(editing!=0L)remove(tasks,id)else tasks
- a.put(JSONObject().put("id",id).put("title",title).put("time",t).put("done",old?.optBoolean("done")?:false))
+ a.put(JSONObject().put("id",id).put("title",title).put("time",t).put("done",old?.optBoolean("done")?:false).put("month",old?.optString("month",currentMonth)?:currentMonth).put("recurring",taskRecurring).put("recurringOrigin",old?.optLong("recurringOrigin",id)?:id))
  cancelAlarm(activity,id)
  if(t>System.currentTimeMillis()&&old?.optBoolean("done")!=true)notifyAlarm(activity,id,title,t)
  taskSave(a)
