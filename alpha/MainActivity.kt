@@ -262,6 +262,9 @@ private val translations=mapOf(
  "Cantidad" to listOf("Amount","Importo","Montant"),
  "Categoría" to listOf("Category","Categoria","Catégorie"),
  "Fecha y hora (dd/MM/yyyy HH:mm)" to listOf("Date and time (dd/MM/yyyy HH:mm)","Data e ora (dd/MM/yyyy HH:mm)","Date et heure (dd/MM/yyyy HH:mm)"),
+ "Apariencia" to listOf("Appearance","Aspetto","Apparence"),
+ "Ingreso mensual" to listOf("Monthly income","Reddito mensile","Revenu mensuel"),
+ "Ejemplo: $2,000.00" to listOf("Example: $2,000.00","Esempio: $2.000,00","Exemple : 2 000,00 $"),
  "Recordarme con notificación" to listOf("Remind me with a notification","Ricordamelo con una notifica","Me rappeler par notification"),
  "Elegir fecha" to listOf("Choose date","Scegli la data","Choisir la date"),
  "Elegir hora" to listOf("Choose time","Scegli l’ora","Choisir l’heure"),
@@ -300,7 +303,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  fun t(value:String)=tr(language,value)
  var mainTab by remember{mutableIntStateOf(0)}
  var tasksSubTab by remember{mutableIntStateOf(0)}
- val tab=if(mainTab==0)tasksSubTab else mainTab+1
+ val tab=when(mainTab){0->tasksSubTab;1->2;2->3;3->5;else->4}
  var monthOffset by remember{mutableIntStateOf(0)}
  var selectedDay by remember{mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))}
  var add by remember{mutableStateOf(false)}
@@ -311,6 +314,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  var expenseCategory by remember{mutableStateOf("Otros")}
  var shoppingMode by remember{mutableStateOf(false)}
  var shoppingEntry by remember{mutableStateOf("")}
+ var shoppingEditingId by remember{mutableLongStateOf(0L)}
+ var configSubTab by remember{mutableIntStateOf(0)}
  var budgetEditing by remember{mutableStateOf(false)}
  var income by remember{mutableStateOf(p.getString("income_"+monthKey(),p.getString("income_default","0"))?:"0")}
  var editing by remember{mutableLongStateOf(0)}
@@ -393,7 +398,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf(t("☑ Tareas"),t("▦ Agenda"),t("◈ Gastos"),t("⚙ Config"),t("🚗 Mi carro")).forEachIndexed{idx,name->
+ listOf(t("☑ Tareas"),t("▦ Agenda"),t("◈ Gastos"),t("🚗 Mi carro"),t("⚙ Config")).forEachIndexed{idx,name->
  Button(onClick={mainTab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(mainTab==idx)accent else panel)){Text(name,color=if(mainTab==idx)Color.Black else Color.White)}
  }
  }
@@ -418,12 +423,12 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Row(verticalAlignment=Alignment.CenterVertically){
  OutlinedTextField(shoppingEntry,{shoppingEntry=it},modifier=Modifier.weight(1f),label={Text(t("Añadir producto"))},singleLine=true)
  Spacer(Modifier.width(6.dp))
- Button(onClick={if(shoppingEntry.isNotBlank()){shopping.put(JSONObject().put("id",System.currentTimeMillis()).put("title",shoppingEntry.trim()).put("done",false));shoppingSave(shopping);shoppingEntry=""}}){Text("+")}
+ Button(onClick={if(shoppingEntry.isNotBlank()){val id=if(shoppingEditingId!=0L)shoppingEditingId else System.currentTimeMillis();val previous=(0 until shopping.length()).firstOrNull{shopping.getJSONObject(it).optLong("id")==id}?.let{shopping.getJSONObject(it)};val updated=if(shoppingEditingId!=0L)remove(shopping,id)else shopping;updated.put(JSONObject().put("id",id).put("title",shoppingEntry.trim()).put("done",previous?.optBoolean("done")?:false));shoppingSave(updated);shoppingEntry="";shoppingEditingId=0L}}){Text("+")}
  }
  LazyColumn{items((0 until shopping.length()).map{shopping.getJSONObject(it)},key={it.optLong("id")}){item->
  Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){
  Checkbox(checked=item.optBoolean("done"),onCheckedChange={item.put("done",it);shoppingSave(shopping)})
- Text(item.optString("title"),modifier=Modifier.weight(1f),color=foreground)
+ Text(item.optString("title"),modifier=Modifier.weight(1f).clickable{shoppingEditingId=item.optLong("id");shoppingEntry=item.optString("title")},color=foreground)
  TextButton(onClick={shareTask(activity,item.optString("title"),0L)}){Text(t("Compartir"),color=accent)}
  TextButton(onClick={shoppingSave(remove(shopping,item.optLong("id")))}){Text(t("Borrar"))}
  }
@@ -472,7 +477,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  3->{
  Text(t("Resumen financiero · ")+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
- OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual (ej. 2500.00)"))},singleLine=true)
+ OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual"))},placeholder={Text(t("Ejemplo: $2,000.00"))},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
  Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
@@ -547,6 +552,14 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }}
  }
  4->{
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)){
+ listOf("Idioma","Notificaciones","Apariencia").forEachIndexed{idx,label->
+ OutlinedButton(onClick={configSubTab=idx},colors=ButtonDefaults.outlinedButtonColors(containerColor=if(configSubTab==idx)accent else panel),contentPadding=PaddingValues(horizontal=9.dp)){
+ Text(t(label),color=if(configSubTab==idx)Color.Black else Color.White)
+ }
+ }
+ }
+ if(configSubTab==1){
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
  Text(t("Notificaciones"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
@@ -563,7 +576,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  })
  }
- HorizontalDivider()
+ }
+ if(configSubTab==0){
  Text(t("Idioma"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
  var languageExpanded by remember{mutableStateOf(false)}
  Box {
@@ -574,7 +588,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
    }
   }
  }
- HorizontalDivider()
+ }
+ if(configSubTab==2){
  Text(t("Wallpaper personalizado"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
  Text(t("Usa una foto de tu galería como fondo de la aplicación"),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -610,6 +625,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  repeat(3-group.size){Spacer(Modifier.weight(1f))}
+ }
  }
  }
  }
