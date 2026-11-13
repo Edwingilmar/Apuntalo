@@ -478,7 +478,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  drawPath(line2,color=accent.copy(alpha=.55f),style=Stroke(width=1.5.dp.toPx()))
  }
- }else Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize().alpha(wallpaperDim))
+ }else Box(Modifier.fillMaxSize().background(Color.White)){
+ Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize().alpha(wallpaperDim))
+ }
  Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal=18.dp, vertical=12.dp)){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
  Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo original de la libreta y el lápiz",contentScale=ContentScale.Fit,modifier=Modifier.size(96.dp))
