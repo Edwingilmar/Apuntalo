@@ -447,7 +447,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  drawPath(line2,color=accent.copy(alpha=.55f),style=Stroke(width=1.5.dp.toPx()))
  }
  }else Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize().alpha(wallpaperDim))
- Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
+ Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal=18.dp, vertical=12.dp)){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
  Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo original de la libreta y el lápiz",contentScale=ContentScale.Fit,modifier=Modifier.size(96.dp))
  Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=if(theme=="Pure White"||theme=="Arctic")Color(0xFF14252E) else Color.White)
@@ -483,7 +483,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Spacer(Modifier.width(6.dp))
  Button(onClick={if(shoppingEntry.isNotBlank()){val id=if(shoppingEditingId!=0L)shoppingEditingId else System.currentTimeMillis();val previous=(0 until shopping.length()).firstOrNull{shopping.getJSONObject(it).optLong("id")==id}?.let{shopping.getJSONObject(it)};val updated=if(shoppingEditingId!=0L)remove(shopping,id)else shopping;updated.put(JSONObject().put("id",id).put("title",shoppingEntry.trim()).put("done",previous?.optBoolean("done")?:false));shoppingSave(updated);shoppingEntry="";shoppingEditingId=0L}}){Text("+")}
  }
- LazyColumn{items((0 until shopping.length()).map{shopping.getJSONObject(it)},key={it.optLong("id")}){item->
+ Column{(0 until shopping.length()).map{shopping.getJSONObject(it)}.forEach{item->
  Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){
  Checkbox(checked=item.optBoolean("done"),onCheckedChange={item.put("done",it);shoppingSave(shopping)})
  Text(item.optString("title"),modifier=Modifier.weight(1f).clickable{shoppingEditingId=item.optLong("id");shoppingEntry=item.optString("title")},color=foreground)
@@ -519,7 +519,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
 
  Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))};Button(onClick={title="";whenText="";remindMe=false;editing=0;add=true}){Text(t("+ Tarea"))}}
  val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
- LazyColumn {items(sorted,key={it.optLong("id")}){o->
+ Column {(sorted).forEach{o->
   Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
   Row(Modifier.padding(10.dp)){
    Checkbox(checked=o.optBoolean("done"),onCheckedChange={done->
@@ -604,7 +604,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  Button(onClick={title="";amount="";expenseCategory="Otros";editing=0;add=true}){Text(t("+ Gasto"))}
- LazyColumn {items((0 until expenses.length()).map{expenses.getJSONObject(it)}){o->
+ Column {(0 until expenses.length()).map{expenses.getJSONObject(it)}.forEach{o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
  Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount")),color=accent)}
  TextButton(onClick={expenseSave(remove(allExpenses,o.optLong("id")) )}){Text(t("Borrar"))}
@@ -671,8 +671,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  if(enabled){theme=themes.filter{it!=theme}.random();p.edit().putString("theme",theme).apply()}
  })
  }
- LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){
- items(themes.chunked(3)){group->
+ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+ themes.chunked(3).forEach{group->
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)){
  group.forEach{name->
  Box(Modifier.weight(1f)){
