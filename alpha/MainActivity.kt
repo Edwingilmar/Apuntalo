@@ -156,6 +156,43 @@ private fun syncDeviceCalendar(ctx:Context,preferLocal:Boolean=false):Int{
  if(changed)save(prefs,"tasks",tasks)
  return synced
 }
+private fun carryRecurringExpenses(p:android.content.SharedPreferences,currentMonth:String){
+ val source=read(p,"expenses")
+ val existing=mutableSetOf<String>()
+ val latest=mutableMapOf<Long,JSONObject>()
+ for(i in 0 until source.length()){
+  val item=source.getJSONObject(i)
+  val origin=item.optLong("recurringOrigin",item.optLong("id"))
+  val month=item.optString("month","")
+  existing.add("$origin:$month")
+  if(month<=currentMonth && (latest[origin]==null || month>latest[origin]!!.optString("month","")))
+   latest[origin]=item
+ }
+ var changed=false
+ for((origin,item) in latest){
+  if(!item.optBoolean("recurring",false))continue
+  val start=item.optString("month","")
+  if(start.isBlank()||start>=currentMonth)continue
+  val date=runCatching{SimpleDateFormat("yyyy-MM",Locale.US).apply{isLenient=false}.parse(start)}.getOrNull()?:continue
+  val cursor=Calendar.getInstance().apply{time=date;set(Calendar.DAY_OF_MONTH,1)}
+  val end=Calendar.getInstance().apply{time=SimpleDateFormat("yyyy-MM",Locale.US).parse(currentMonth)!!;set(Calendar.DAY_OF_MONTH,1)}
+  var count=0
+  while(cursor.before(end)&&count++<240){
+   cursor.add(Calendar.MONTH,1)
+   val key=SimpleDateFormat("yyyy-MM",Locale.US).format(cursor.time)
+   if("$origin:$key" !in existing){
+    val copy=JSONObject(item.toString())
+    copy.put("id",System.currentTimeMillis()+source.length()+count+origin%10000)
+    copy.put("recurringOrigin",origin)
+    copy.put("month",key)
+    source.put(copy)
+    existing.add("$origin:$key")
+    changed=true
+   }
+  }
+ }
+ if(changed)save(p,"expenses",source)
+}
 private fun shareTask(ctx:Context,title:String,time:Long){
  val message="📌 APÚNTALO: "+title+(if(time>0L)"\\n📅 "+fmt(time) else "")
  val intent=Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,message)}
@@ -468,8 +505,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
  var tick by remember{mutableIntStateOf(0)}
  val tasks=remember(tick){read(p,"tasks")}
- val allExpenses=remember(tick){read(p,"expenses")}
  val currentMonth=monthKey()
+ remember(currentMonth){carryRecurringExpenses(p,currentMonth);true}
+ val allExpenses=remember(tick){read(p,"expenses")}
  val expenses=remember(tick,currentMonth){JSONArray().also{out->for(i in 0 until allExpenses.length()){val e=allExpenses.getJSONObject(i);if(e.optString("month",monthKey(e.optLong("id",System.currentTimeMillis())))==currentMonth)out.put(e)}}}
  val shopping=remember(tick){read(p,"shopping")}
  var language by remember{mutableStateOf(p.getString("language","es")?:"es")}
@@ -485,6 +523,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  var remindMe by remember{mutableStateOf(false)}
  var amount by remember{mutableStateOf("")}
  var expenseCategory by remember{mutableStateOf("Otros")}
+ var expenseRecurring by remember{mutableStateOf(false)}
  var shoppingMode by remember{mutableStateOf(false)}
  var shoppingEntry by remember{mutableStateOf("")}
  var shoppingEditingId by remember{mutableLongStateOf(0L)}
@@ -725,10 +764,10 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
- Button(onClick={title="";amount="";expenseCategory="Otros";editing=0;add=true}){Text(t("+ Gasto"))}
+ Button(onClick={title="";amount="";expenseCategory="Otros";expenseRecurring=false;editing=0;add=true}){Text(t("+ Gasto"))}
  Column {(0 until expenses.length()).map{expenses.getJSONObject(it)}.forEach{o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
- Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount")),color=accent)}
+ Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");expenseRecurring=o.optBoolean("recurring",false);add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount"))+(if(o.optBoolean("recurring",false))" · ↻ Recurrente" else ""),color=accent)}
  TextButton(onClick={expenseSave(remove(allExpenses,o.optLong("id")) )}){Text(t("Borrar"))}
  }
  }}
@@ -838,6 +877,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  OutlinedTextField(title,{title=it},label={Text(t("Descripción"))})
  if(tab==3){
  OutlinedTextField(amount,{amount=it},label={Text(t("Cantidad"))})
+ Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=expenseRecurring,onCheckedChange={expenseRecurring=it});Text("Repetir este gasto cada mes") }
  Text(t("Categoría"),style=MaterialTheme.typography.labelMedium)
  val cats=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  cats.chunked(3).forEach{group->Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){
@@ -873,7 +913,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val id=if(editing!=0L)editing else System.currentTimeMillis()
  if(tab==3){
  val a=if(editing!=0L)remove(allExpenses,id)else allExpenses
- a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory).put("month",currentMonth))
+ val old=(0 until allExpenses.length()).firstOrNull{allExpenses.getJSONObject(it).optLong("id")==id}?.let{allExpenses.getJSONObject(it)}
+ a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory).put("month",currentMonth).put("recurring",expenseRecurring).put("recurringOrigin",old?.optLong("recurringOrigin",id)?:id))
  expenseSave(a)
  }else{
  val t=if(!remindMe)0L else if(whenText.isBlank())-1L else parse(whenText)?:-1L
