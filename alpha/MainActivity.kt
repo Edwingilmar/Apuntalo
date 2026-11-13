@@ -45,6 +45,11 @@ private fun notifyAlarm(ctx:Context,id:Long,title:String,time:Long){
     else if(Build.VERSION.SDK_INT<31)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,time,pi)
     else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,time,pi)
 }
+private fun shareTask(ctx:Context,title:String,time:Long){
+ val message="📌 APÚNTALO: "+title+(if(time>0L)"\\n📅 "+fmt(time) else "")
+ val intent=Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,message)}
+ ctx.startActivity(Intent.createChooser(intent,"Compartir tarea"))
+}
 private fun cancelAlarm(ctx:Context,id:Long){
     val pi=PendingIntent.getBroadcast(ctx,(id%Int.MAX_VALUE).toInt(),Intent(ctx,ReminderReceiver::class.java),PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
     if(pi!=null)ctx.getSystemService(AlarmManager::class.java).cancel(pi)
@@ -165,6 +170,7 @@ class MainActivity:ComponentActivity(){
     Text(o.optString("title"),color=Color.White,fontWeight=FontWeight.SemiBold)
     if(o.optLong("time")>0)Text(fmt(o.optLong("time")),color=teal,style=MaterialTheme.typography.bodySmall)
    }
+   TextButton(onClick={shareTask(activity,o.optString("title"),o.optLong("time"))}){Text("↗")}
    TextButton(onClick={cancelAlarm(activity,o.optLong("id"));taskSave(remove(tasks,o.optLong("id")))}){Text("Borrar")}
   }}
  }}
