@@ -105,6 +105,8 @@ class MainActivity:ComponentActivity(){
  Text("que se te olvida",color=Color(0xFF56636A),style=MaterialTheme.typography.titleMedium)
  Spacer(Modifier.height(28.dp))
  CircularProgressIndicator(color=Color(0xFF65B9A5),strokeWidth=3.dp,modifier=Modifier.size(25.dp))
+ Spacer(Modifier.height(26.dp))
+ Text("by Gilmar",color=Color(0xFF003C42),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Medium)
  }
  }
  }else Screen(activity)
