@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.Alignment
@@ -82,8 +83,31 @@ class MainActivity:ComponentActivity(){
  super.onCreate(savedInstanceState)
  appContext=applicationContext
  getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Recordatorios de tareas",NotificationManager.IMPORTANCE_HIGH))
- setContent { Screen(this) }
+ setContent { AppEntry(this) }
  }
+}
+@Composable fun AppEntry(activity:MainActivity){
+ var showingSplash by remember{mutableStateOf(true)}
+ LaunchedEffect(Unit){delay(2000L);showingSplash=false}
+ if(showingSplash){
+ Box(Modifier.fillMaxSize().background(Color.White),contentAlignment=Alignment.Center){
+ Column(horizontalAlignment=Alignment.CenterHorizontally){
+ Canvas(Modifier.size(128.dp)){
+ val scale=size.width/128f
+ drawRoundRect(color=Color(0xFF17191F),topLeft=Offset(10f*scale,8f*scale),size=Size(108f*scale,112f*scale),cornerRadius=androidx.compose.ui.geometry.CornerRadius(24f*scale))
+ drawRoundRect(color=Color(0xFFFFF4DE),topLeft=Offset(34f*scale,22f*scale),size=Size(62f*scale,82f*scale),cornerRadius=androidx.compose.ui.geometry.CornerRadius(8f*scale))
+ for(i in 0..3){drawLine(Color(0xFF65B9A5),Offset(45f*scale,(42+i*14)*scale),Offset(84f*scale,(42+i*14)*scale),strokeWidth=3f*scale)}
+ drawLine(Color(0xFFFFC247),Offset(91f*scale,23f*scale),Offset(55f*scale,90f*scale),strokeWidth=12f*scale,cap=StrokeCap.Round)
+ drawLine(Color(0xFF564638),Offset(55f*scale,90f*scale),Offset(50f*scale,99f*scale),strokeWidth=5f*scale,cap=StrokeCap.Round)
+ }
+ Spacer(Modifier.height(22.dp))
+ Text("APÚNTALO",color=Color(0xFF17191F),style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black)
+ Text("que se te olvida",color=Color(0xFF56636A),style=MaterialTheme.typography.titleMedium)
+ Spacer(Modifier.height(28.dp))
+ CircularProgressIndicator(color=Color(0xFF65B9A5),strokeWidth=3.dp,modifier=Modifier.size(25.dp))
+ }
+ }
+ }else Screen(activity)
 }
 @Composable fun Screen(activity:MainActivity){
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
