@@ -598,10 +598,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  if(wallpaper!=null)OutlinedButton(onClick={activity.removeWallpaper()}){Text(t("Quitar fondo"))}
  }
  HorizontalDivider()
- {
  Text("Dim: ${(wallpaperDim*100).toInt()} %",color=foreground)
  Slider(value=wallpaperDim,onValueChange={wallpaperDim=it;p.edit().putFloat("wallpaper_dim",it).apply()},valueRange=0f..1f)
- }
  Text(t("Tema visual"),color=foreground)
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
@@ -719,6 +717,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  add=false
  }
  }){Text(t("Guardar"))}},dismissButton={TextButton(onClick={add=false}){Text(t("Cancelar"))}})
+}
 }
 
 class TaskWidgetProvider:AppWidgetProvider(){
