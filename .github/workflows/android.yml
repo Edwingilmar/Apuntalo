@@ -111,44 +111,20 @@ jobs:
           from PIL import Image
           base=Path(os.environ["PROJECT_DIR"])/"app/src/main/res"
           source=Image.open(base/"drawable-nodpi/apuntalo_icon_original.jpg").convert("RGB")
-          # Remove only the white area connected to the outer edges.
-          # Keep enclosed white parts of the notebook intact.
-          from collections import deque
+          # Remove all near-white/neutral backing pixels, not just the outer connected region.
+          # The original icon contains a white rounded square inside the image itself.
           logo=source.resize((512,512),Image.Resampling.LANCZOS).convert("RGBA")
           pixels=logo.load()
-          width,height=logo.size
-          visited=bytearray(width*height)
-          queue=deque()
-          def near_background(x,y):
-              red,green,blue,_=pixels[x,y]
-              return min(red,green,blue)>=195 and max(red,green,blue)-min(red,green,blue)<=35
-          for x in range(width):
-              if near_background(x,0):queue.append((x,0))
-              if near_background(x,height-1):queue.append((x,height-1))
-          for y in range(height):
-              if near_background(0,y):queue.append((0,y))
-              if near_background(width-1,y):queue.append((width-1,y))
-          while queue:
-              x,y=queue.popleft()
-              pos=y*width+x
-              if visited[pos]:continue
-              visited[pos]=1
-              if not near_background(x,y):continue
-              red,green,blue,_=pixels[x,y]
-              pixels[x,y]=(red,green,blue,0)
-              if x>0:queue.append((x-1,y))
-              if x+1<width:queue.append((x+1,y))
-              if y>0:queue.append((x,y-1))
-              if y+1<height:queue.append((x,y+1))
-          # Feather only the outline touching the transparent background.
-          original=logo.copy()
-          op=original.load()
-          for y in range(1,height-1):
-              for x in range(1,width-1):
-                  red,green,blue,alpha=op[x,y]
-                  if alpha==0 or min(red,green,blue)<185:continue
-                  if any(op[x+dx,y+dy][3]==0 for dx,dy in ((1,0),(-1,0),(0,1),(0,-1))):
-                      pixels[x,y]=(red,green,blue,min(alpha,180))
+          for y in range(logo.height):
+              for x in range(logo.width):
+                  red,green,blue,_=pixels[x,y]
+                  low=min(red,green,blue)
+                  spread=max(red,green,blue)-low
+                  if low>=225 and spread<=30:
+                      pixels[x,y]=(red,green,blue,0)
+                  elif low>=195 and spread<=24:
+                      alpha=round(255*(225-low)/30)
+                      pixels[x,y]=(red,green,blue,alpha)
           logo.save(base/"drawable-nodpi/apuntalo_launcher_logo.png")
           for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
               folder=base/('mipmap-'+density)
