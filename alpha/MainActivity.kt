@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -93,15 +95,8 @@ class MainActivity:ComponentActivity(){
  if(showingSplash){
  Box(Modifier.fillMaxSize().background(Color.White),contentAlignment=Alignment.Center){
  Column(horizontalAlignment=Alignment.CenterHorizontally){
- Canvas(Modifier.size(128.dp)){
- val scale=size.width/128f
- drawRoundRect(color=Color(0xFF17191F),topLeft=Offset(10f*scale,8f*scale),size=Size(108f*scale,112f*scale),cornerRadius=androidx.compose.ui.geometry.CornerRadius(24f*scale))
- drawRoundRect(color=Color(0xFFFFF4DE),topLeft=Offset(34f*scale,22f*scale),size=Size(62f*scale,82f*scale),cornerRadius=androidx.compose.ui.geometry.CornerRadius(8f*scale))
- for(i in 0..3){drawLine(Color(0xFF65B9A5),Offset(45f*scale,(42+i*14)*scale),Offset(84f*scale,(42+i*14)*scale),strokeWidth=3f*scale)}
- drawLine(Color(0xFFFFC247),Offset(91f*scale,23f*scale),Offset(55f*scale,90f*scale),strokeWidth=12f*scale,cap=StrokeCap.Round)
- drawLine(Color(0xFF564638),Offset(55f*scale,90f*scale),Offset(50f*scale,99f*scale),strokeWidth=5f*scale,cap=StrokeCap.Round)
- }
- Spacer(Modifier.height(22.dp))
+ Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(150.dp))
+  Spacer(Modifier.height(22.dp))
  Text("APÚNTALO",color=Color(0xFF17191F),style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black)
  Text("que se te olvida",color=Color(0xFF56636A),style=MaterialTheme.typography.titleMedium)
  Spacer(Modifier.height(28.dp))
@@ -167,8 +162,8 @@ class MainActivity:ComponentActivity(){
  fun expenseSave(a:JSONArray){save(p,"expenses",a);refresh()}
  fun shoppingSave(a:JSONArray){save(p,"shopping",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
- Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f)))).padding(18.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(52.dp).background(accent.copy(alpha=0.2f),RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){Text("✎",style=MaterialTheme.typography.headlineLarge,color=accent)};Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
+ Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f)))).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(52.dp));Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
  Text("que se te olvida",color=accent)
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
@@ -235,7 +230,7 @@ class MainActivity:ComponentActivity(){
     Text(o.optString("title"),color=Color.White,fontWeight=FontWeight.SemiBold)
     if(o.optLong("time")>0)Text(fmt(o.optLong("time")),color=teal,style=MaterialTheme.typography.bodySmall)
    }
-   TextButton(onClick={shareTask(activity,o.optString("title"),o.optLong("time"))}){Text("↗")}
+   TextButton(onClick={shareTask(activity,o.optString("title"),o.optLong("time"))},contentPadding=PaddingValues(horizontal=4.dp)){Text("Compartir",color=accent)}
    TextButton(onClick={cancelAlarm(activity,o.optLong("id"));taskSave(remove(tasks,o.optLong("id")))}){Text("Borrar")}
   }}
  }}
