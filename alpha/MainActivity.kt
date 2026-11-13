@@ -8,6 +8,10 @@ import android.widget.RemoteViews
 import android.content.*
 import android.os.Build
 import android.os.Bundle
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -84,6 +88,17 @@ class BootReceiver:android.content.BroadcastReceiver(){
  }
 }
 class MainActivity:ComponentActivity(){
+ private val wallpaperPicker=registerForActivityResult(ActivityResultContracts.GetContent()){uri->
+  if(uri!=null)try{
+   contentResolver.openInputStream(uri)?.use{input->File(filesDir,"wallpaper.jpg").outputStream().use{output->input.copyTo(output)}}
+   getSharedPreferences("apuntalo_alpha",0).edit().putLong("wallpaper_revision",System.currentTimeMillis()).apply()
+   wallpaperRevision.value++
+  }catch(_:Exception){}
+ }
+ val wallpaperRevision=mutableIntStateOf(0)
+ fun chooseWallpaper(){wallpaperPicker.launch("image/*")}
+ fun removeWallpaper(){File(filesDir,"wallpaper.jpg").delete();wallpaperRevision.value++}
+
  override fun onCreate(savedInstanceState:Bundle?){
  super.onCreate(savedInstanceState)
  appContext=applicationContext
@@ -169,14 +184,18 @@ class MainActivity:ComponentActivity(){
  "Arctic","Pure White"->Color(0xFF33475A);else->card
  }
  val foreground=if(theme=="Pure White"||theme=="Arctic")Color.Black else Color.White
+ val wallpaperVersion=activity.wallpaperRevision.intValue
+ val wallpaper=remember(wallpaperVersion){runCatching{BitmapFactory.decodeFile(File(activity.filesDir,"wallpaper.jpg").absolutePath)?.asImageBitmap()}.getOrNull()}
  fun refresh(){tick++}
  fun taskSave(a:JSONArray){save(p,"tasks",a);refresh()}
  fun expenseSave(a:JSONArray){save(p,"expenses",a);refresh()}
  fun shoppingSave(a:JSONArray){save(p,"shopping",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
- Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f)))).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
+ Box(Modifier.fillMaxSize().background(background)){
+ if(wallpaper!=null)Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
+ Column(Modifier.fillMaxSize().background(if(wallpaper!=null)Color(0xB817191F) else Color.Transparent).background(if(wallpaper==null)Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f))) else Brush.verticalGradient(listOf(Color.Transparent,Color.Transparent))).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(52.dp));Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
- Text("que se te olvida",color=accent)
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){Text("que se te olvida",color=accent)}
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
@@ -342,6 +361,13 @@ class MainActivity:ComponentActivity(){
  })
  }
  HorizontalDivider()
+ Text("Wallpaper personalizado",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text("Usa una foto de tu galería como fondo de la aplicación",color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+ Button(onClick={activity.chooseWallpaper()}){Text("⬆ Subir wallpaper")}
+ if(wallpaper!=null)OutlinedButton(onClick={activity.removeWallpaper()}){Text("Quitar fondo")}
+ }
+ HorizontalDivider()
  Text("Tema visual",color=foreground)
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
@@ -355,6 +381,7 @@ class MainActivity:ComponentActivity(){
  })
  }
  LazyColumn {items(themes){name->Row(Modifier.fillMaxWidth().clickable{randomTheme=false;theme=name;p.edit().putBoolean("random_theme",false).putString("theme",name).apply()}.padding(9.dp)){Text(if(theme==name && !randomTheme)"✓ $name" else name,color=foreground)}}}
+ }
  }
  }
  }
