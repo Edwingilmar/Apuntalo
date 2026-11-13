@@ -26,6 +26,8 @@ import android.database.Cursor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
+import android.util.Base64
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -244,6 +246,67 @@ class BootReceiver:android.content.BroadcastReceiver(){
  }
 }
 class MainActivity:ComponentActivity(){
+ val backupRevision=mutableIntStateOf(0)
+ private val backupExport=registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->
+  if(uri!=null)runCatching{
+   val prefs=getSharedPreferences("apuntalo_alpha",0)
+   val data=JSONObject().put("format","APUNTALO_BACKUP").put("version",1)
+   val values=JSONObject()
+   for((key,value) in prefs.all){
+    when(value){
+     is String->values.put(key,JSONObject().put("type","string").put("value",value))
+     is Boolean->values.put(key,JSONObject().put("type","boolean").put("value",value))
+     is Int->values.put(key,JSONObject().put("type","int").put("value",value))
+     is Long->values.put(key,JSONObject().put("type","long").put("value",value))
+     is Float->values.put(key,JSONObject().put("type","float").put("value",value.toDouble()))
+    }
+   }
+   data.put("preferences",values)
+   val wallpaper=File(filesDir,"wallpaper.jpg")
+   if(wallpaper.exists())data.put("wallpaper",Base64.encodeToString(wallpaper.readBytes(),Base64.NO_WRAP))
+   contentResolver.openOutputStream(uri)?.use{it.write(data.toString().toByteArray(Charsets.UTF_8))}
+    ?:error("No se pudo abrir el archivo")
+   Toast.makeText(this,"Respaldo guardado. Puedes elegir Google Drive.",Toast.LENGTH_LONG).show()
+  }.onFailure{Toast.makeText(this,"Error al guardar respaldo: ${it.message}",Toast.LENGTH_LONG).show()}
+ }
+ private val backupImport=registerForActivityResult(ActivityResultContracts.OpenDocument()){uri->
+  if(uri!=null)runCatching{
+   val bytes=contentResolver.openInputStream(uri)?.use{it.readBytes()}?:error("Archivo inaccesible")
+   require(bytes.size<30_000_000){"Respaldo demasiado grande"}
+   val data=JSONObject(String(bytes,Charsets.UTF_8))
+   require(data.optString("format")=="APUNTALO_BACKUP" && data.optInt("version")==1){"No es un respaldo compatible"}
+   val values=data.getJSONObject("preferences")
+   val prefs=getSharedPreferences("apuntalo_alpha",0)
+   val editor=prefs.edit().clear()
+   val keys=values.keys()
+   while(keys.hasNext()){
+    val key=keys.next()
+    val entry=values.getJSONObject(key)
+    when(entry.getString("type")){
+     "string"->editor.putString(key,entry.getString("value"))
+     "boolean"->editor.putBoolean(key,entry.getBoolean("value"))
+     "int"->editor.putInt(key,entry.getInt("value"))
+     "long"->editor.putLong(key,entry.getLong("value"))
+     "float"->editor.putFloat(key,entry.getDouble("value").toFloat())
+    }
+   }
+   check(editor.commit()){"No se pudieron restaurar los datos"}
+   val wallpaper=File(filesDir,"wallpaper.jpg")
+   if(data.has("wallpaper"))wallpaper.writeBytes(Base64.decode(data.getString("wallpaper"),Base64.DEFAULT))
+   else wallpaper.delete()
+   wallpaperRevision.intValue++
+   backupRevision.intValue++
+   if(calendarAllowed(this))runCatching{syncDeviceCalendar(this,true)}
+   Toast.makeText(this,"Respaldo restaurado",Toast.LENGTH_LONG).show()
+  }.onFailure{Toast.makeText(this,"Error al restaurar: ${it.message}",Toast.LENGTH_LONG).show()}
+ }
+ fun createBackup(){backupExport.launch("APUNTALO-respaldo-"+SimpleDateFormat("yyyy-MM-dd",Locale.US).format(Date())+".json")}
+ fun restoreBackup(){backupImport.launch(arrayOf("application/json","application/octet-stream"))}
+ override fun onResume(){
+  super.onResume()
+  if(calendarAllowed(this))runCatching{syncDeviceCalendar(this)}.onSuccess{calendarRevision.intValue++}
+ }
+
  val calendarRevision=mutableIntStateOf(0)
  private val calendarPermission=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){permissions->
   if(permissions.values.all{it})runCatching{syncDeviceCalendar(this)}.onSuccess{calendarRevision.intValue++}
@@ -519,16 +582,17 @@ private fun holidays(year:Int,month:Int):Map<Int,List<String>>{
 }
 private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;"fr"->2;else->-1};return if(i<0)key else translations[key]?.get(i)?:key}
 @Composable fun Screen(activity:MainActivity){
- val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
- var tick by remember{mutableIntStateOf(0)}
+ val backupRevision=activity.backupRevision.intValue
+ val p=remember(backupRevision){activity.getSharedPreferences("apuntalo_alpha",0)}
+ var tick by remember(backupRevision){mutableIntStateOf(0)}
  val currentMonth=monthKey()
  val todayKey=SimpleDateFormat("yyyy-MM-dd",Locale.US).format(Date())
  remember(todayKey){resetDailyRecurringTasks(p);true}
- val tasks=remember(tick){read(p,"tasks")}
+ val tasks=remember(tick,backupRevision){read(p,"tasks")}
  remember(currentMonth){carryRecurringExpenses(p,currentMonth);true}
- val allExpenses=remember(tick){read(p,"expenses")}
+ val allExpenses=remember(tick,backupRevision){read(p,"expenses")}
  val expenses=remember(tick,currentMonth){JSONArray().also{out->for(i in 0 until allExpenses.length()){val e=allExpenses.getJSONObject(i);if(e.optString("month",monthKey(e.optLong("id",System.currentTimeMillis())))==currentMonth)out.put(e)}}}
- val shopping=remember(tick){read(p,"shopping")}
+ val shopping=remember(tick,backupRevision){read(p,"shopping")}
  var language by remember{mutableStateOf(p.getString("language","es")?:"es")}
  fun t(value:String)=tr(language,value)
  var mainTab by remember{mutableIntStateOf(0)}
@@ -798,6 +862,15 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  OutlinedButton(onClick={configSubTab=idx},colors=ButtonDefaults.outlinedButtonColors(containerColor=if(configSubTab==idx)accent else panel),contentPadding=PaddingValues(horizontal=9.dp)){
  Text(t(label),color=if(configSubTab==idx)Color.Black else Color.White)
  }
+ }
+ }
+ if(configSubTab==0){
+ HorizontalDivider()
+ Text("Respaldo de APÚNTALO",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text("Guarda o recupera tareas, gastos, compras, ajustes y wallpaper. Elige Google Drive en el selector de archivos.",color=foreground)
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+ Button(onClick={activity.createBackup()}){Text("Crear respaldo")}
+ OutlinedButton(onClick={activity.restoreBackup()}){Text("Restaurar")}
  }
  }
  if(configSubTab==1){
