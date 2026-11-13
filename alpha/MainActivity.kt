@@ -17,6 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
@@ -87,23 +89,23 @@ class MainActivity:ComponentActivity(){
  fun taskSave(a:JSONArray){save(p,"tasks",a);refresh()}
  fun expenseSave(a:JSONArray){save(p,"expenses",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
- Column(Modifier.fillMaxSize().background(background).padding(16.dp)){
- Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)
+ Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.15f)))).padding(18.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(52.dp).background(accent.copy(alpha=0.2f),RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){Text("✎",style=MaterialTheme.typography.headlineLarge,color=accent)};Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
  Text("que se te olvida",color=accent)
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf("Lista","Calendario","Finanzas","Ajustes").forEachIndexed{idx,name->
- Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=10.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else card)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
+ listOf("☑ Lista","▦ Agenda","◈ Gastos","⚙ Temas").forEachIndexed{idx,name->
+ Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else card)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
  }
  }
  Spacer(Modifier.height(14.dp))
  when(tab){
  0,1->{
- Row {Text(if(tab==0)"Mis tareas" else "Próximos recordatorios",color=foreground,modifier=Modifier.weight(1f));Button(onClick={title="";whenText="";editing=0;add=true}){Text("+ Tarea")}}
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=card)){Column(Modifier.padding(18.dp)){Text("TU PRODUCTIVIDAD",color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)"Mis tareas" else "Próximos recordatorios",color=foreground,modifier=Modifier.weight(1f));Button(onClick={title="";whenText="";editing=0;add=true}){Text("+ Tarea")}}
  val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0||it.optLong("time")>0}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  LazyColumn {items(sorted,key={it.optLong("id")}){o->
-  Card(Modifier.fillMaxWidth().padding(vertical=4.dp),colors=CardDefaults.cardColors(containerColor=card)){
+  Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=card)){
   Row(Modifier.padding(10.dp)){
    Checkbox(checked=o.optBoolean("done"),onCheckedChange={done->
     o.put("done",done);if(done)cancelAlarm(activity,o.optLong("id")) else if(o.optLong("time")>System.currentTimeMillis())notifyAlarm(activity,o.optLong("id"),o.optString("title"),o.optLong("time"));taskSave(tasks)
@@ -117,11 +119,11 @@ class MainActivity:ComponentActivity(){
  }}
  }
  2->{
- Text("Finanzas del mes",color=foreground,style=MaterialTheme.typography.titleLarge)
+ Text("Resumen financiero",color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income",it).apply()},label={Text("Ingreso mensual")},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
- Text("Disponible: $%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=accent,style=MaterialTheme.typography.headlineSmall)
+ Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=card)){Column(Modifier.padding(20.dp)){Text("BALANCE DISPONIBLE",color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
  Button(onClick={title="";amount="";editing=0;add=true}){Text("+ Gasto")}
  LazyColumn {items((0 until expenses.length()).map{expenses.getJSONObject(it)}){o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
