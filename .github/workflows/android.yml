@@ -68,6 +68,54 @@ jobs:
           sed -i 's/<application/<uses-permission android:name="android.permission.POST_NOTIFICATIONS"\/><uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"\/><uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"\/><application android:icon="@android:drawable\/ic_menu_edit"/' "$PROJECT_DIR/app/src/main/AndroidManifest.xml"
           sed -i 's#</application>#<receiver android:name=".ReminderReceiver" android:exported="false"/><receiver android:name=".BootReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter></receiver></application>#' "$PROJECT_DIR/app/src/main/AndroidManifest.xml"
 
+      - name: Install task widget resources
+        shell: bash
+        run: |
+          mkdir -p "$PROJECT_DIR/app/src/main/res/layout" "$PROJECT_DIR/app/src/main/res/xml"
+          cat > "$PROJECT_DIR/app/src/main/res/layout/apuntalo_widget.xml" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/widget_root"
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:background="#252932"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+              <TextView android:id="@+id/widget_header"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:text="APÚNTALO" android:textColor="#65B9A5"
+                  android:textSize="16sp" android:textStyle="bold"/>
+              <TextView android:id="@+id/widget_tasks"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:layout_marginTop="10dp" android:textColor="#FFFFFF"
+                  android:textSize="14sp" android:maxLines="5"/>
+          </LinearLayout>
+          EOF
+          cat > "$PROJECT_DIR/app/src/main/res/xml/apuntalo_widget_info.xml" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+              android:minWidth="180dp" android:minHeight="110dp"
+              android:initialLayout="@layout/apuntalo_widget"
+              android:updatePeriodMillis="1800000"
+              android:resizeMode="horizontal|vertical"
+              android:widgetCategory="home_screen"/>
+          EOF
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          manifest=Path(os.environ["PROJECT_DIR"])/"app/src/main/AndroidManifest.xml"
+          content=manifest.read_text()
+          receiver='''<receiver android:name=".TaskWidgetProvider" android:exported="true">
+            <intent-filter>
+              <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+              <action android:name="com.gilmar.apuntalo.REFRESH_WIDGET"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/apuntalo_widget_info"/>
+          </receiver>'''
+          content=content.replace("</application>",receiver+"</application>")
+          manifest.write_text(content)
+          PY
+
       - name: Build APK
         run: gradle -p "$PROJECT_DIR" assembleDebug
 
