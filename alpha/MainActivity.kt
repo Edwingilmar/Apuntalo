@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
@@ -150,7 +151,7 @@ class MainActivity:ComponentActivity(){
  val light=name=="Pure White"||name=="Arctic"
  Column(Modifier.fillMaxWidth().padding(3.dp).border(if(selected)2.dp else 1.dp,if(selected)tone else tone.copy(alpha=.25f),RoundedCornerShape(12.dp)).clickable(onClick=onChoose).padding(4.dp),horizontalAlignment=Alignment.CenterHorizontally){
  Box(Modifier.fillMaxWidth().height(94.dp).clip(RoundedCornerShape(8.dp))){
- Canvas(Modifier.fillMaxSize()){
+ Canvas(Modifier.fillMaxSize().alpha(wallpaperDim)){
  val w=size.width;val h=size.height
  drawRect(brush=Brush.verticalGradient(listOf(base,base,tone.copy(alpha=.38f))))
  val wave=Path().apply{moveTo(0f,h*.78f);cubicTo(w*.30f,h*.96f,w*.54f,h*.96f,w*.72f,h*.62f);cubicTo(w*.85f,h*.46f,w*.94f,h*.48f,w,h*.42f);lineTo(w,h);lineTo(0f,h);close()}
@@ -192,7 +193,7 @@ class MainActivity:ComponentActivity(){
  var randomTheme by remember{mutableStateOf(p.getBoolean("random_theme",false))}
  var theme by remember{mutableStateOf(if(p.getBoolean("random_theme",false))themes.random().also{p.edit().putString("theme",it).apply()} else p.getString("theme","Midnight")?:"Midnight")}
  var notificationsEnabled by remember{mutableStateOf(p.getBoolean("notifications_enabled",true))}
- var wallpaperDim by remember{mutableFloatStateOf(p.getFloat("wallpaper_dim",0.55f))}
+ var wallpaperDim by remember{mutableFloatStateOf(p.getFloat("wallpaper_dim",1f))}
  val accent=when(theme){
  "Crimson"->Color(0xFFFF6079);"Ocean"->Color(0xFF59B8EA);"Emerald"->Color(0xFF55D6A1)
  "Purple Haze"->Color(0xFFBB8CF5);"Burgundy"->Color(0xFFE287A0);"Sunset"->Color(0xFFFFA16D)
@@ -257,8 +258,8 @@ class MainActivity:ComponentActivity(){
  }
  drawPath(line2,color=accent.copy(alpha=.55f),style=Stroke(width=1.5.dp.toPx()))
  }
- }else Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
- Column(Modifier.fillMaxSize().background(if(wallpaper!=null)Color.Black.copy(alpha=wallpaperDim) else Color.Transparent).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
+ }else Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize().alpha(wallpaperDim))
+ Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
  Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(60.dp))
  Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)
@@ -436,8 +437,8 @@ class MainActivity:ComponentActivity(){
  if(wallpaper!=null)OutlinedButton(onClick={activity.removeWallpaper()}){Text("Quitar fondo")}
  }
  HorizontalDivider()
- if(wallpaper!=null){
- Text("Oscurecer wallpaper: ${(wallpaperDim*100).toInt()} %",color=foreground)
+ {
+ Text("Dim: ${(wallpaperDim*100).toInt()} %",color=foreground)
  Slider(value=wallpaperDim,onValueChange={wallpaperDim=it;p.edit().putFloat("wallpaper_dim",it).apply()},valueRange=0f..1f)
  }
  Text("Tema visual",color=foreground)
