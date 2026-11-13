@@ -87,7 +87,7 @@ private fun calendarAllowed(ctx:Context):Boolean=
  ContextCompat.checkSelfPermission(ctx,Manifest.permission.READ_CALENDAR)==PackageManager.PERMISSION_GRANTED&&
  ContextCompat.checkSelfPermission(ctx,Manifest.permission.WRITE_CALENDAR)==PackageManager.PERMISSION_GRANTED
 
-private fun syncDeviceCalendar(ctx:Context):Int{
+private fun syncDeviceCalendar(ctx:Context,preferLocal:Boolean=false):Int{
  if(!calendarAllowed(ctx))return 0
  val prefs=ctx.getSharedPreferences("apuntalo_alpha",0)
  val resolver=ctx.contentResolver
@@ -122,9 +122,17 @@ private fun syncDeviceCalendar(ctx:Context):Int{
     val eventTitle=cursor.getString(2)?:""
     val eventTime=cursor.getLong(3)
     if(eventTitle!=task.optString("title")||eventTime!=task.optLong("time")){
-     // The device calendar is the source when both sides were edited.
-     task.put("title",eventTitle).put("time",eventTime)
-     changed=true
+     if(preferLocal){
+      resolver.update(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI,eventId),ContentValues().apply{
+       put(CalendarContract.Events.TITLE,task.optString("title"))
+       put(CalendarContract.Events.DTSTART,task.optLong("time"))
+       put(CalendarContract.Events.DTEND,task.optLong("time")+30*60*1000L)
+      },null,null)
+     }else{
+      task.put("title",eventTitle).put("time",eventTime)
+      changed=true
+     }
+     synced++
     }
    }
   }
@@ -518,7 +526,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val wallpaperVersion=activity.wallpaperRevision.intValue
  val wallpaper=remember(wallpaperVersion){runCatching{BitmapFactory.decodeFile(File(activity.filesDir,"wallpaper.jpg").absolutePath)?.asImageBitmap()}.getOrNull()}
  fun refresh(){tick++}
- fun taskSave(a:JSONArray){save(p,"tasks",a);if(calendarAllowed(activity))runCatching{syncDeviceCalendar(activity)};refresh()}
+ fun taskSave(a:JSONArray){save(p,"tasks",a);if(calendarAllowed(activity))runCatching{syncDeviceCalendar(activity,true)};refresh()}
  fun expenseSave(a:JSONArray){save(p,"expenses",a);refresh()}
  fun shoppingSave(a:JSONArray){save(p,"shopping",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
