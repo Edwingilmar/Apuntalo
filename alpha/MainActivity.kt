@@ -76,6 +76,16 @@ private fun shareTask(ctx:Context,title:String,time:Long){
  val intent=Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,message)}
  ctx.startActivity(Intent.createChooser(intent,"Compartir tarea"))
 }
+private fun shareList(ctx:Context,heading:String,items:JSONArray){
+ val content=(0 until items.length()).joinToString("\n"){i->
+  val item=items.getJSONObject(i)
+  (if(item.optBoolean("done"))"☑ " else "☐ ")+item.optString("title")+
+  (if(item.optLong("time")>0)" · "+fmt(item.optLong("time")) else "")
+ }
+ val message="📌 APÚNTALO · "+heading+"\n"+(if(content.isBlank())"—" else content)
+ val intent=Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,message)}
+ ctx.startActivity(Intent.createChooser(intent,heading))
+}
 private fun cancelAlarm(ctx:Context,id:Long){
     val pi=PendingIntent.getBroadcast(ctx,(id%Int.MAX_VALUE).toInt(),Intent(ctx,ReminderReceiver::class.java),PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
     if(pi!=null)ctx.getSystemService(AlarmManager::class.java).cancel(pi)
@@ -397,7 +407,10 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  when(tab){
  0,1,2->{
  if(tab==1){
- Text(t("Listas de compras"),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+ Text(t("Listas de compras"),modifier=Modifier.weight(1f),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ OutlinedButton(onClick={shareList(activity,t("Listas de compras"),shopping)}){Text("↗ "+t("Compartir"))}
+ }
  Row(verticalAlignment=Alignment.CenterVertically){
  OutlinedTextField(shoppingEntry,{shoppingEntry=it},modifier=Modifier.weight(1f),label={Text(t("Añadir producto"))},singleLine=true)
  Spacer(Modifier.width(6.dp))
@@ -407,6 +420,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){
  Checkbox(checked=item.optBoolean("done"),onCheckedChange={item.put("done",it);shoppingSave(shopping)})
  Text(item.optString("title"),modifier=Modifier.weight(1f),color=foreground)
+ TextButton(onClick={shareTask(activity,item.optString("title"),0L)}){Text(t("Compartir"),color=accent)}
  TextButton(onClick={shoppingSave(remove(shopping,item.optLong("id")))}){Text(t("Borrar"))}
  }
  }}
