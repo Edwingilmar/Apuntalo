@@ -41,6 +41,7 @@ private val bg=Color(0xFF17191F)
 private val card=Color(0xFF252932)
 private val teal=Color(0xFF65B9A5)
 private const val CHANNEL="apuntalo_tasks"
+private fun monthKey(t:Long=System.currentTimeMillis())=SimpleDateFormat("yyyy-MM",Locale.US).format(Date(t))
 private fun fmt(t:Long)=SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(Date(t))
 private fun parse(s:String):Long?=try { SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).apply{isLenient=false}.parse(s)?.time }catch(_:Exception){null}
 private fun read(p:android.content.SharedPreferences,k:String):JSONArray=try{JSONArray(p.getString(k,"[]"))}catch(_:Exception){JSONArray()}
@@ -115,7 +116,9 @@ class MainActivity:ComponentActivity(){
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
  var tick by remember{mutableIntStateOf(0)}
  val tasks=remember(tick){read(p,"tasks")}
- val expenses=remember(tick){read(p,"expenses")}
+ val allExpenses=remember(tick){read(p,"expenses")}
+ val currentMonth=monthKey()
+ val expenses=remember(tick,currentMonth){JSONArray().also{out->for(i in 0 until allExpenses.length()){val e=allExpenses.getJSONObject(i);if(e.optString("month",monthKey(e.optLong("id",System.currentTimeMillis())))==currentMonth)out.put(e)}}}
  val shopping=remember(tick){read(p,"shopping")}
  var tab by remember{mutableIntStateOf(0)}
  var monthOffset by remember{mutableIntStateOf(0)}
@@ -128,7 +131,7 @@ class MainActivity:ComponentActivity(){
  var shoppingMode by remember{mutableStateOf(false)}
  var shoppingEntry by remember{mutableStateOf("")}
  var budgetEditing by remember{mutableStateOf(false)}
- var income by remember{mutableStateOf(p.getString("income","4700")?:"4700")}
+ var income by remember{mutableStateOf(p.getString("income_"+monthKey(),"0")?:"0")}
  var editing by remember{mutableLongStateOf(0)}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
  var randomTheme by remember{mutableStateOf(p.getBoolean("random_theme",false))}
@@ -239,8 +242,8 @@ class MainActivity:ComponentActivity(){
  }
  }
  2->{
- Text("Resumen financiero",color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
- OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income",it).apply()},label={Text("Ingreso mensual")},singleLine=true)
+ Text("Resumen financiero · "+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).apply()},label={Text("Ingreso mensual (ej. 2500.00)")},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
  Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text("BALANCE DISPONIBLE",color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
@@ -288,7 +291,7 @@ class MainActivity:ComponentActivity(){
  TextButton(onClick={budgetEditing=!budgetEditing}){Text(if(budgetEditing)"Listo" else "Editar límites")}
  }
  categories.forEachIndexed{idx,cat->
- val key="budget_"+cat
+ val key="budget_"+currentMonth+"_"+cat
  var limitText by remember(cat){mutableStateOf(p.getString(key,"")?:"")}
  val limit=limitText.toDoubleOrNull()?:0.0
  Column(Modifier.padding(vertical=5.dp)){
@@ -310,7 +313,7 @@ class MainActivity:ComponentActivity(){
  LazyColumn {items((0 until expenses.length()).map{expenses.getJSONObject(it)}){o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
  Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount")),color=accent)}
- TextButton(onClick={expenseSave(remove(expenses,o.optLong("id")))}){Text("Borrar")}
+ TextButton(onClick={expenseSave(remove(allExpenses,o.optLong("id")) )}){Text("Borrar")}
  }
  }}
  }
@@ -369,8 +372,8 @@ class MainActivity:ComponentActivity(){
  if(title.isNotBlank()){
  val id=if(editing!=0L)editing else System.currentTimeMillis()
  if(tab==2){
- val a=if(editing!=0L)remove(expenses,id)else expenses
- a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory))
+ val a=if(editing!=0L)remove(allExpenses,id)else allExpenses
+ a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory).put("month",currentMonth))
  expenseSave(a)
  }else{
  val t=if(whenText.isBlank())0L else parse(whenText)?:-1L
