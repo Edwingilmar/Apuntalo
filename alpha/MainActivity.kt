@@ -129,6 +129,44 @@ class MainActivity:ComponentActivity(){
  }
  }else Screen(activity)
 }
+@Composable fun ThemeThumbnail(name:String,selected:Boolean,onChoose:()->Unit){
+ val tone=when(name){
+ "Crimson"->Color(0xFFFF6079);"Ocean"->Color(0xFF59B8EA);"Emerald"->Color(0xFF55D6A1)
+ "Purple Haze"->Color(0xFFBB8CF5);"Burgundy"->Color(0xFFE287A0);"Sunset"->Color(0xFFFFA16D)
+ "Cyberpunk"->Color(0xFF00E5D0);"Dracula"->Color(0xFFBD93F9);"Military"->Color(0xFFC0B887)
+ "Forest"->Color(0xFF88C88A);"Graphite"->Color(0xFFAAB5C7);"Arctic"->Color(0xFF287FA5)
+ "OLED Black"->Color(0xFFB0B0B0);"Pure White"->Color(0xFF60B9AD)
+ else->teal
+ }
+ val base=when(name){
+ "Crimson"->Color(0xFF260B17);"OLED Black"->Color.Black;"Ocean"->Color(0xFF091D32)
+ "Emerald"->Color(0xFF09251F);"Purple Haze"->Color(0xFF1C102E)
+ "Burgundy"->Color(0xFF30131F);"Graphite"->Color(0xFF1B2029)
+ "Arctic"->Color(0xFFE6F0F5);"Pure White"->Color(0xFFF7F9FC)
+ "Forest"->Color(0xFF10271C);"Sunset"->Color(0xFF35202A)
+ "Cyberpunk"->Color(0xFF100D28);"Dracula"->Color(0xFF282A36)
+ "Military"->Color(0xFF24291F);else->bg
+ }
+ val light=name=="Pure White"||name=="Arctic"
+ Column(Modifier.fillMaxWidth().padding(3.dp).border(if(selected)2.dp else 1.dp,if(selected)tone else tone.copy(alpha=.25f),RoundedCornerShape(12.dp)).clickable(onClick=onChoose).padding(4.dp),horizontalAlignment=Alignment.CenterHorizontally){
+ Box(Modifier.fillMaxWidth().height(94.dp).clip(RoundedCornerShape(8.dp))){
+ Canvas(Modifier.fillMaxSize()){
+ val w=size.width;val h=size.height
+ drawRect(brush=Brush.verticalGradient(listOf(base,base,tone.copy(alpha=.38f))))
+ val wave=Path().apply{moveTo(0f,h*.78f);cubicTo(w*.30f,h*.96f,w*.54f,h*.96f,w*.72f,h*.62f);cubicTo(w*.85f,h*.46f,w*.94f,h*.48f,w,h*.42f);lineTo(w,h);lineTo(0f,h);close()}
+ drawPath(wave,brush=Brush.verticalGradient(listOf(tone.copy(alpha=.16f),tone.copy(alpha=.80f)),startY=h*.42f,endY=h))
+ val edge=Path().apply{moveTo(0f,h*.78f);cubicTo(w*.30f,h*.96f,w*.54f,h*.96f,w*.72f,h*.62f);cubicTo(w*.85f,h*.46f,w*.94f,h*.48f,w,h*.42f)}
+ drawPath(edge,tone,style=Stroke(width=1.5.dp.toPx()))
+ }
+ Column(Modifier.padding(6.dp)){
+ Text("APÚNTALO",color=if(light)Color.Black else Color.White,style=MaterialTheme.typography.labelSmall,fontWeight=FontWeight.Bold,maxLines=1)
+ Spacer(Modifier.height(5.dp))
+ Box(Modifier.fillMaxWidth(.70f).height(5.dp).background(tone.copy(alpha=.75f),RoundedCornerShape(5.dp)))
+ }
+ }
+ Text((if(selected)"✓ " else "")+name,color=MaterialTheme.colorScheme.onSurface,style=MaterialTheme.typography.labelSmall,maxLines=1)
+ }
+}
 @Composable fun Screen(activity:MainActivity){
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
  var tick by remember{mutableIntStateOf(0)}
@@ -414,7 +452,21 @@ class MainActivity:ComponentActivity(){
  if(enabled){theme=themes.filter{it!=theme}.random();p.edit().putString("theme",theme).apply()}
  })
  }
- LazyColumn {items(themes){name->Row(Modifier.fillMaxWidth().clickable{randomTheme=false;theme=name;p.edit().putBoolean("random_theme",false).putString("theme",name).apply()}.padding(9.dp)){Text(if(theme==name && !randomTheme)"✓ $name" else name,color=foreground)}}}
+ LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){
+ items(themes.chunked(3)){group->
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)){
+ group.forEach{name->
+ Box(Modifier.weight(1f)){
+ ThemeThumbnail(name,theme==name&&!randomTheme){
+ randomTheme=false;theme=name
+ p.edit().putBoolean("random_theme",false).putString("theme",name).apply()
+ }
+ }
+ }
+ repeat(3-group.size){Spacer(Modifier.weight(1f))}
+ }
+ }
+ }
  }
  }
  }
