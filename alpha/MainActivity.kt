@@ -200,7 +200,7 @@ class MainActivity:ComponentActivity(){
  val light=name=="Pure White"||name=="Arctic"
  Column(Modifier.fillMaxWidth().padding(3.dp).border(if(selected)2.dp else 1.dp,if(selected)tone else tone.copy(alpha=.25f),RoundedCornerShape(12.dp)).clickable(onClick=onChoose).padding(4.dp),horizontalAlignment=Alignment.CenterHorizontally){
  Box(Modifier.fillMaxWidth().height(94.dp).clip(RoundedCornerShape(8.dp))){
- Canvas(Modifier.fillMaxSize().alpha(wallpaperDim)){
+ Canvas(Modifier.fillMaxSize()){
  val w=size.width;val h=size.height
  drawRect(brush=Brush.verticalGradient(listOf(base,base,tone.copy(alpha=.38f))))
  val wave=Path().apply{moveTo(0f,h*.78f);cubicTo(w*.30f,h*.96f,w*.54f,h*.96f,w*.72f,h*.62f);cubicTo(w*.85f,h*.46f,w*.94f,h*.48f,w,h*.42f);lineTo(w,h);lineTo(0f,h);close()}
