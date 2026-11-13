@@ -21,6 +21,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.media.ExifInterface
+import android.provider.CalendarContract
+import android.database.Cursor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
@@ -80,6 +82,72 @@ private fun notifyAlarm(ctx:Context,id:Long,title:String,time:Long){
     else if(Build.VERSION.SDK_INT<31)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,time,pi)
     else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,time,pi)
 }
+
+private fun calendarAllowed(ctx:Context):Boolean=
+ ContextCompat.checkSelfPermission(ctx,Manifest.permission.READ_CALENDAR)==PackageManager.PERMISSION_GRANTED&&
+ ContextCompat.checkSelfPermission(ctx,Manifest.permission.WRITE_CALENDAR)==PackageManager.PERMISSION_GRANTED
+
+private fun syncDeviceCalendar(ctx:Context):Int{
+ if(!calendarAllowed(ctx))return 0
+ val prefs=ctx.getSharedPreferences("apuntalo_alpha",0)
+ val resolver=ctx.contentResolver
+ val calendars=mutableListOf<Long>()
+ resolver.query(CalendarContract.Calendars.CONTENT_URI,arrayOf(CalendarContract.Calendars._ID),
+  "${CalendarContract.Calendars.VISIBLE}=1 AND ${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL}>=?",
+  arrayOf(CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR.toString()),null)?.use{cursor->
+  while(cursor.moveToNext())calendars.add(cursor.getLong(0))
+ }
+ if(calendars.isEmpty())return 0
+ val calendarId=calendars.first()
+ val tasks=read(prefs,"tasks")
+ val byId=mutableMapOf<Long,JSONObject>()
+ for(i in 0 until tasks.length()){val task=tasks.getJSONObject(i);byId[task.optLong("id")]=task}
+ val prefix="APUNTALO_TASK_ID:"
+ var changed=false
+ var synced=0
+ val seen=mutableSetOf<Long>()
+ resolver.query(CalendarContract.Events.CONTENT_URI,
+  arrayOf(CalendarContract.Events._ID,CalendarContract.Events.DESCRIPTION,CalendarContract.Events.TITLE,CalendarContract.Events.DTSTART),
+  "${CalendarContract.Events.DESCRIPTION} LIKE ?",arrayOf("$prefix%"),null)?.use{cursor->
+  while(cursor.moveToNext()){
+   val eventId=cursor.getLong(0)
+   val description=cursor.getString(1)?:""
+   val id=description.substringAfter(prefix).substringBefore("\\n").trim().toLongOrNull()?:continue
+   seen.add(id)
+   val task=byId[id]
+   if(task==null||task.optLong("time")<=0L){
+    resolver.delete(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI,eventId),null,null)
+    synced++
+   }else{
+    val eventTitle=cursor.getString(2)?:""
+    val eventTime=cursor.getLong(3)
+    if(eventTitle!=task.optString("title")||eventTime!=task.optLong("time")){
+     // The device calendar is the source when both sides were edited.
+     task.put("title",eventTitle).put("time",eventTime)
+     changed=true
+    }
+   }
+  }
+ }
+ for(i in 0 until tasks.length()){
+  val task=tasks.getJSONObject(i)
+  val id=task.optLong("id")
+  val time=task.optLong("time")
+  if(time<=0L||id in seen)continue
+  val values=ContentValues().apply{
+   put(CalendarContract.Events.CALENDAR_ID,calendarId)
+   put(CalendarContract.Events.TITLE,task.optString("title"))
+   put(CalendarContract.Events.DESCRIPTION,prefix+id)
+   put(CalendarContract.Events.DTSTART,time)
+   put(CalendarContract.Events.DTEND,time+30*60*1000L)
+   put(CalendarContract.Events.EVENT_TIMEZONE,TimeZone.getDefault().id)
+  }
+  resolver.insert(CalendarContract.Events.CONTENT_URI,values)
+  synced++
+ }
+ if(changed)save(prefs,"tasks",tasks)
+ return synced
+}
 private fun shareTask(ctx:Context,title:String,time:Long){
  val message="📌 APÚNTALO: "+title+(if(time>0L)"\\n📅 "+fmt(time) else "")
  val intent=Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,message)}
@@ -114,6 +182,14 @@ class BootReceiver:android.content.BroadcastReceiver(){
  }
 }
 class MainActivity:ComponentActivity(){
+ val calendarRevision=mutableIntStateOf(0)
+ private val calendarPermission=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){permissions->
+  if(permissions.values.all{it})runCatching{syncDeviceCalendar(this)}.onSuccess{calendarRevision.intValue++}
+ }
+ fun synchronizeCalendar(){
+  if(calendarAllowed(this))runCatching{syncDeviceCalendar(this)}.onSuccess{calendarRevision.intValue++}
+  else calendarPermission.launch(arrayOf(Manifest.permission.READ_CALENDAR,Manifest.permission.WRITE_CALENDAR))
+ }
  val carRevision=mutableIntStateOf(0)
  private val carPermission=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){permissions->
   if(permissions.values.any{it})saveCarLocation()
@@ -442,7 +518,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val wallpaperVersion=activity.wallpaperRevision.intValue
  val wallpaper=remember(wallpaperVersion){runCatching{BitmapFactory.decodeFile(File(activity.filesDir,"wallpaper.jpg").absolutePath)?.asImageBitmap()}.getOrNull()}
  fun refresh(){tick++}
- fun taskSave(a:JSONArray){save(p,"tasks",a);refresh()}
+ fun taskSave(a:JSONArray){save(p,"tasks",a);if(calendarAllowed(activity))runCatching{syncDeviceCalendar(activity)};refresh()}
  fun expenseSave(a:JSONArray){save(p,"expenses",a);refresh()}
  fun shoppingSave(a:JSONArray){save(p,"shopping",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
@@ -532,6 +608,10 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val offset=(cal.get(Calendar.DAY_OF_WEEK)+5)%7
  val days=cal.getActualMaximum(Calendar.DAY_OF_MONTH)
  val monthHolidays=holidays(cal.get(Calendar.YEAR),cal.get(Calendar.MONTH)+1)
+ val calendarRevision=activity.calendarRevision.intValue
+ OutlinedButton(onClick={activity.synchronizeCalendar()}){Text(t("Sincronizar calendario del teléfono"))}
+ Text(t("Google Calendar y Samsung Calendar: requiere permiso y un calendario editable en el dispositivo."),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+
  Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
  Column(Modifier.padding(14.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={monthOffset--;selectedDay=1}){Text("‹",style=MaterialTheme.typography.headlineSmall)};Text(month,modifier=Modifier.weight(1f),color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);TextButton(onClick={monthOffset++;selectedDay=1}){Text("›",style=MaterialTheme.typography.headlineSmall)}}
