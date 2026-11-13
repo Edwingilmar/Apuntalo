@@ -487,6 +487,17 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  })
  }
  HorizontalDivider()
+ Text(t("Idioma"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ var languageExpanded by remember{mutableStateOf(false)}
+ Box {
+  OutlinedButton(onClick={languageExpanded=true}){Text(when(language){"en"->"English";"it"->"Italiano";"fr"->"Français";else->"Español"})}
+  DropdownMenu(expanded=languageExpanded,onDismissRequest={languageExpanded=false}){
+   listOf("es" to "Español","en" to "English","it" to "Italiano","fr" to "Français").forEach{(code,name)->
+    DropdownMenuItem(text={Text(name)},onClick={language=code;p.edit().putString("language",code).apply();languageExpanded=false})
+   }
+  }
+ }
+ HorizontalDivider()
  Text(t("Wallpaper personalizado"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
  Text(t("Usa una foto de tu galería como fondo de la aplicación"),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
