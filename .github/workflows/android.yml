@@ -116,58 +116,24 @@ jobs:
           manifest.write_text(content)
           PY
 
-      - name: Prepare visible branded Android icon
+      - name: Install exact approved splash and launcher icon
         shell: bash
         run: |
           python3 -m pip install --user Pillow
           mkdir -p "$PROJECT_DIR/app/src/main/res/drawable-nodpi"
-          base64 -d alpha/launcher-logo.jpg.base64 > "$PROJECT_DIR/app/src/main/res/drawable-nodpi/apuntalo_source.jpg"
+          base64 -d alpha/approved_splash.jpg.base64 > "$PROJECT_DIR/app/src/main/res/drawable-nodpi/apuntalo_splash.jpg"
+          base64 -d alpha/approved_icon.jpg.base64 > "$PROJECT_DIR/app/src/main/res/drawable-nodpi/apuntalo_icon_original.jpg"
           python3 - <<'PY'
           import os,re
           from pathlib import Path
-          from PIL import Image, ImageOps, ImageDraw
+          from PIL import Image
           base=Path(os.environ["PROJECT_DIR"])/"app/src/main/res"
-          try:
-              im=Image.open(base/"drawable-nodpi/apuntalo_source.jpg").convert("RGB")
-          except Exception:
-              im=Image.new("RGB",(128,104),"white")
-              d=ImageDraw.Draw(im)
-              d.rounded_rectangle((14,9,99,99),radius=14,fill="#008F85")
-              d.rounded_rectangle((21,6,92,92),radius=10,fill="#FFF4DE")
-              for y in (30,49,68):
-                  d.rectangle((32,y,43,y+11),outline="#007F76",width=2)
-                  d.line((34,y+5,38,y+9,47,y-3),fill="#007F76",width=3)
-                  d.line((52,y+6,75,y+6),fill="#9A9A9A",width=3)
-              d.line((100,17,65,79),fill="#FFC247",width=13)
-              d.ellipse((93,7,106,22),fill="#F48D9D")
-          # Remove whitespace and partial word below original artwork
-          im=im.crop((3,0,126,97))
-          # Preserve the actual approved notebook artwork and remove its white background
-          rgba=im.convert("RGBA")
-          pixels=rgba.load()
-          for y in range(rgba.height):
-              for x in range(rgba.width):
-                  r,g,b,a=pixels[x,y]
-                  brightness=min(r,g,b)
-                  if r>230 and g>230 and b>225:
-                      pixels[x,y]=(r,g,b,max(0,int((255-max(0,brightness-225))*8.5)))
+          source=Image.open(base/"drawable-nodpi/apuntalo_icon_original.jpg").convert("RGB")
           for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
               folder=base/('mipmap-'+density)
               folder.mkdir(parents=True,exist_ok=True)
-              icon=Image.new("RGBA",(size,size),(23,25,31,255))
-              d=ImageDraw.Draw(icon)
-              d.rounded_rectangle((1,1,size-2,size-2),radius=size//5,fill=(23,25,31,255))
-              logo=rgba.copy()
-              logo.thumbnail((int(size*.88),int(size*.84)),Image.Resampling.LANCZOS)
-              icon.alpha_composite(logo,((size-logo.width)//2,(size-logo.height)//2))
-              icon.save(folder/'apuntalo_launcher.png')
-          # Bigger asset for header/splash, same artwork and same backing
-          size=512
-          icon=Image.new("RGBA",(size,size),(23,25,31,255))
-          logo=rgba.copy()
-          logo.thumbnail((460,440),Image.Resampling.LANCZOS)
-          icon.alpha_composite(logo,((size-logo.width)//2,(size-logo.height)//2))
-          icon.save(base/"drawable-nodpi/apuntalo_launcher_logo.png")
+              source.resize((size,size),Image.Resampling.LANCZOS).save(folder/'apuntalo_launcher.png')
+          source.resize((512,512),Image.Resampling.LANCZOS).save(base/"drawable-nodpi/apuntalo_launcher_logo.png")
           manifest=base.parent/"AndroidManifest.xml"
           content=manifest.read_text()
           content=re.sub(r'android:icon="[^"]*"', 'android:icon="@mipmap/apuntalo_launcher"',content)
