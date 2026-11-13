@@ -37,6 +37,7 @@ private fun read(p:android.content.SharedPreferences,k:String):JSONArray=try{JSO
 private fun save(p:android.content.SharedPreferences,k:String,a:JSONArray){p.edit().putString(k,a.toString()).apply()}
 private fun remove(a:JSONArray,id:Long):JSONArray=JSONArray().also{out->for(i in 0 until a.length()){val o=a.getJSONObject(i);if(o.optLong("id")!=id)out.put(o)}}
 private fun notifyAlarm(ctx:Context,id:Long,title:String,time:Long){
+    if(!ctx.getSharedPreferences("apuntalo_alpha",0).getBoolean("notifications_enabled",true))return
     val intent=Intent(ctx,ReminderReceiver::class.java).putExtra("title",title).putExtra("id",id)
     val pi=PendingIntent.getBroadcast(ctx,(id%Int.MAX_VALUE).toInt(),intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     val am=ctx.getSystemService(AlarmManager::class.java)
@@ -50,6 +51,7 @@ private fun cancelAlarm(ctx:Context,id:Long){
 }
 class ReminderReceiver:android.content.BroadcastReceiver(){
  override fun onReceive(c:Context,i:Intent){
+    if(!c.getSharedPreferences("apuntalo_alpha",0).getBoolean("notifications_enabled",true))return
     val nm=c.getSystemService(NotificationManager::class.java)
     val n=android.app.Notification.Builder(c,CHANNEL).setSmallIcon(android.R.drawable.ic_menu_edit).setContentTitle("APÚNTALO").setContentText(i.getStringExtra("title")?:"Tienes una tarea pendiente").setAutoCancel(true).build()
     nm.notify((i.getLongExtra("id",0)%Int.MAX_VALUE).toInt(),n)
@@ -83,6 +85,7 @@ class MainActivity:ComponentActivity(){
  var income by remember{mutableStateOf(p.getString("income","4700")?:"4700")}
  var editing by remember{mutableLongStateOf(0)}
  var theme by remember{mutableStateOf(p.getString("theme","Midnight")?:"Midnight")}
+ var notificationsEnabled by remember{mutableStateOf(p.getBoolean("notifications_enabled",true))}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
  val accent=when(theme){
  "Crimson"->Color(0xFFFF6079);"Ocean"->Color(0xFF59B8EA);"Emerald"->Color(0xFF55D6A1)
@@ -180,6 +183,23 @@ class MainActivity:ComponentActivity(){
  }}
  }
  else->{
+ Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
+ Column(Modifier.weight(1f)){
+ Text("Notificaciones",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text("Recordatorios de tareas con fecha y hora",color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ }
+ Switch(checked=notificationsEnabled,onCheckedChange={enabled->
+ notificationsEnabled=enabled
+ p.edit().putBoolean("notifications_enabled",enabled).apply()
+ for(i in 0 until tasks.length()){
+ val task=tasks.getJSONObject(i)
+ val id=task.optLong("id")
+ cancelAlarm(activity,id)
+ if(enabled && !task.optBoolean("done") && task.optLong("time")>System.currentTimeMillis())notifyAlarm(activity,id,task.optString("title"),task.optLong("time"))
+ }
+ })
+ }
+ HorizontalDivider()
  Text("Tema visual",color=foreground)
  LazyColumn {items(themes){name->Row(Modifier.fillMaxWidth().clickable{theme=name;p.edit().putString("theme",name).apply()}.padding(9.dp)){Text(if(theme==name)"✓ $name" else name,color=foreground)}}}
  }
