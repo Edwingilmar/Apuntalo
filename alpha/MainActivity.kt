@@ -508,22 +508,46 @@ class MainActivity:ComponentActivity(){
 }
 
 class TaskWidgetProvider:AppWidgetProvider(){
+ companion object {private const val ACTION_TAB="com.gilmar.apuntalo.WIDGET_TAB";private const val PREF_TAB="widget_tab"}
  override fun onUpdate(context:Context,manager:AppWidgetManager,ids:IntArray){
-  val tasks=read(context.getSharedPreferences("apuntalo_alpha",0),"tasks")
+  val p=context.getSharedPreferences("apuntalo_alpha",0)
+  val tasks=read(p,"tasks")
+  val shopping=read(p,"shopping")
+  val expenses=read(p,"expenses")
+  val tab=p.getInt(PREF_TAB,0).coerceIn(0,3)
   val pending=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{!it.optBoolean("done")}.sortedBy{if(it.optLong("time")>0)it.optLong("time")else Long.MAX_VALUE}
-  val lines=if(pending.isEmpty())"Todo al día ✓" else pending.take(4).joinToString("\n"){ "• "+it.optString("title") }
+  val shoppingItems=(0 until shopping.length()).map{shopping.getJSONObject(it)}.filter{!it.optBoolean("done")}
+  val upcoming=pending.filter{it.optLong("time")>0}
+  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
+  val labels=listOf("Tareas","Compras","Agenda","Gastos")
+  val lines=when(tab){
+   0->if(pending.isEmpty())"Todo al día ✓" else pending.take(4).joinToString("\n"){"• "+it.optString("title")}
+   1->if(shoppingItems.isEmpty())"Lista de compras vacía" else shoppingItems.take(4).joinToString("\n"){"• "+it.optString("title")}
+   2->if(upcoming.isEmpty())"Sin recordatorios próximos" else upcoming.take(4).joinToString("\n"){"• "+it.optString("title")+" · "+fmt(it.optLong("time"))}
+   else->"Total registrado: $"+String.format(Locale.US,"%.2f",total)+"\n"+(0 until expenses.length()).map{expenses.getJSONObject(it)}.takeLast(3).joinToString("\n"){"• "+it.optString("title")+" · $"+String.format(Locale.US,"%.2f",it.optDouble("amount"))}
+  }
   ids.forEach{id->
    val view=RemoteViews(context.packageName,com.gilmar.apuntalo.R.layout.apuntalo_widget)
    view.setTextViewText(com.gilmar.apuntalo.R.id.widget_tasks,lines)
-   view.setTextViewText(com.gilmar.apuntalo.R.id.widget_header,"APÚNTALO · "+pending.size+" pendientes")
+   view.setTextViewText(com.gilmar.apuntalo.R.id.widget_header,"APÚNTALO · "+labels[tab])
+   val tabIds=intArrayOf(com.gilmar.apuntalo.R.id.widget_tab_tasks,com.gilmar.apuntalo.R.id.widget_tab_shopping,com.gilmar.apuntalo.R.id.widget_tab_agenda,com.gilmar.apuntalo.R.id.widget_tab_expenses)
+   tabIds.forEachIndexed{index,viewId->
+    view.setTextColor(viewId,if(index==tab)android.graphics.Color.rgb(64,198,183) else android.graphics.Color.WHITE)
+    val intent=Intent(context,TaskWidgetProvider::class.java).setAction(ACTION_TAB).putExtra("tab",index).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,id)
+    val pi=PendingIntent.getBroadcast(context,id*10+index,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    view.setOnClickPendingIntent(viewId,pi)
+   }
    val open=PendingIntent.getActivity(context,0,Intent(context,MainActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-   view.setOnClickPendingIntent(com.gilmar.apuntalo.R.id.widget_root,open)
+   view.setOnClickPendingIntent(com.gilmar.apuntalo.R.id.widget_header,open)
    manager.updateAppWidget(id,view)
   }
  }
  override fun onReceive(context:Context,intent:Intent){
   super.onReceive(context,intent)
-  if(intent.action=="com.gilmar.apuntalo.REFRESH_WIDGET"){
+  if(intent.action==ACTION_TAB){
+   context.getSharedPreferences("apuntalo_alpha",0).edit().putInt(PREF_TAB,intent.getIntExtra("tab",0).coerceIn(0,3)).apply()
+  }
+  if(intent.action==ACTION_TAB||intent.action=="com.gilmar.apuntalo.REFRESH_WIDGET"){
    val mgr=AppWidgetManager.getInstance(context)
    onUpdate(context,mgr,mgr.getAppWidgetIds(android.content.ComponentName(context,TaskWidgetProvider::class.java)))
   }
