@@ -159,6 +159,7 @@ class MainActivity:ComponentActivity(){
  var randomTheme by remember{mutableStateOf(p.getBoolean("random_theme",false))}
  var theme by remember{mutableStateOf(if(p.getBoolean("random_theme",false))themes.random().also{p.edit().putString("theme",it).apply()} else p.getString("theme","Midnight")?:"Midnight")}
  var notificationsEnabled by remember{mutableStateOf(p.getBoolean("notifications_enabled",true))}
+ var wallpaperDim by remember{mutableFloatStateOf(p.getFloat("wallpaper_dim",0.55f))}
  val accent=when(theme){
  "Crimson"->Color(0xFFFF6079);"Ocean"->Color(0xFF59B8EA);"Emerald"->Color(0xFF55D6A1)
  "Purple Haze"->Color(0xFFBB8CF5);"Burgundy"->Color(0xFFE287A0);"Sunset"->Color(0xFFFFA16D)
@@ -193,7 +194,7 @@ class MainActivity:ComponentActivity(){
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
  Box(Modifier.fillMaxSize().background(background)){
  if(wallpaper!=null)Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
- Column(Modifier.fillMaxSize().background(if(wallpaper!=null)Color(0xB817191F) else Color.Transparent).background(if(wallpaper==null)Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f))) else Brush.verticalGradient(listOf(Color.Transparent,Color.Transparent))).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
+ Column(Modifier.fillMaxSize().background(if(wallpaper!=null)Color.Black.copy(alpha=wallpaperDim) else Color.Transparent).background(if(wallpaper==null)Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f))) else Brush.verticalGradient(listOf(Color.Transparent,Color.Transparent))).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(52.dp));Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){Text("que se te olvida",color=accent)}
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
@@ -368,6 +369,10 @@ class MainActivity:ComponentActivity(){
  if(wallpaper!=null)OutlinedButton(onClick={activity.removeWallpaper()}){Text("Quitar fondo")}
  }
  HorizontalDivider()
+ if(wallpaper!=null){
+ Text("Oscurecer wallpaper: ${(wallpaperDim*100).toInt()} %",color=foreground)
+ Slider(value=wallpaperDim,onValueChange={wallpaperDim=it;p.edit().putFloat("wallpaper_dim",it).apply()},valueRange=0f..1f)
+ }
  Text("Tema visual",color=foreground)
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
