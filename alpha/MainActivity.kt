@@ -268,19 +268,14 @@ class MainActivity:ComponentActivity(){
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf("☑ Lista","▦ Agenda","◈ Gastos","⚙ Config").forEachIndexed{idx,name->
+ listOf("☑ Tareas","🛒 Compras","▦ Agenda","◈ Gastos","⚙ Config").forEachIndexed{idx,name->
  Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else panel)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
  }
  }
  Spacer(Modifier.height(14.dp))
  when(tab){
- 0,1->{
- if(tab==0){
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){
- TextButton(onClick={shoppingMode=!shoppingMode}){Text(if(shoppingMode)"Ver tareas" else "🛒 Compras")}
- }
- }
- if(tab==0 && shoppingMode){
+ 0,1,2->{
+ if(tab==1){
  Text("Listas de compras",color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  Row(verticalAlignment=Alignment.CenterVertically){
  OutlinedTextField(shoppingEntry,{shoppingEntry=it},modifier=Modifier.weight(1f),label={Text("Añadir producto")},singleLine=true)
@@ -295,7 +290,7 @@ class MainActivity:ComponentActivity(){
  }
  }}
  }else{
- if(tab==1){
+ if(tab==2){
  val cal=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)}
  val month=SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(cal.time).replaceFirstChar{it.uppercase()}
  val offset=(cal.get(Calendar.DAY_OF_WEEK)+5)%7
@@ -336,7 +331,7 @@ class MainActivity:ComponentActivity(){
  }}
  }
  }
- 2->{
+ 3->{
  Text("Resumen financiero · "+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text("Ingreso mensual (ej. 2500.00)")},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
