@@ -18,6 +18,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -87,6 +92,7 @@ class MainActivity:ComponentActivity(){
  var title by remember{mutableStateOf("")}
  var whenText by remember{mutableStateOf("")}
  var amount by remember{mutableStateOf("")}
+ var expenseCategory by remember{mutableStateOf("Otros")}
  var income by remember{mutableStateOf(p.getString("income","4700")?:"4700")}
  var editing by remember{mutableLongStateOf(0)}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
@@ -181,10 +187,47 @@ class MainActivity:ComponentActivity(){
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
  Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text("BALANCE DISPONIBLE",color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
- Button(onClick={title="";amount="";editing=0;add=true}){Text("+ Gasto")}
+ val categories=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
+ val chartColors=listOf(Color(0xFF62C4B4),Color(0xFFFFB86B),Color(0xFF8DA8FF),Color(0xFFCE8DF4),Color(0xFFFF7F91),Color(0xFFADB6C5))
+ val sums=categories.map{category->(0 until expenses.length()).sumOf{idx->val e=expenses.getJSONObject(idx);if(e.optString("category","Otros")==category)e.optDouble("amount").coerceAtLeast(0.0) else 0.0}}
+ Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
+ Column(Modifier.padding(18.dp)){
+ Text("DISTRIBUCIÓN DE GASTOS",color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold)
+ Spacer(Modifier.height(14.dp))
+ Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){
+ Canvas(Modifier.size(170.dp)){
+ val stroke=30.dp.toPx()
+ val inset=stroke/2f
+ val arcSize=Size(size.width-stroke,size.height-stroke)
+ if(total<=0.0)drawArc(Color.White.copy(alpha=0.12f),0f,360f,false,topLeft=Offset(inset,inset),size=arcSize,style=Stroke(stroke,cap=StrokeCap.Butt))
+ else{
+ var angle=-90f
+ sums.forEachIndexed{idx,v->
+ if(v>0){val sweep=(v/total*360.0).toFloat();drawArc(chartColors[idx],angle,sweep,false,topLeft=Offset(inset,inset),size=arcSize,style=Stroke(stroke));angle+=sweep}
+ }
+ }
+ }
+ Column(horizontalAlignment=Alignment.CenterHorizontally){
+ Text("$%.2f".format(total),color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ Text("Gastado",color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.labelMedium)
+ }
+ }
+ Spacer(Modifier.height(12.dp))
+ categories.forEachIndexed{idx,cat->if(sums[idx]>0){
+ Row(Modifier.fillMaxWidth().padding(vertical=3.dp),verticalAlignment=Alignment.CenterVertically){
+ Box(Modifier.size(11.dp).background(chartColors[idx],RoundedCornerShape(3.dp)))
+ Spacer(Modifier.width(9.dp))
+ Text(cat,color=Color.White,modifier=Modifier.weight(1f))
+ Text("$%.2f".format(sums[idx]),color=Color.White)
+ }
+ }}
+ if(total<=0.0)Text("Registra un gasto para ver tu gráfica.",color=Color.White.copy(alpha=0.7f))
+ }
+ }
+ Button(onClick={title="";amount="";expenseCategory="Otros";editing=0;add=true}){Text("+ Gasto")}
  LazyColumn {items((0 until expenses.length()).map{expenses.getJSONObject(it)}){o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
- Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount")),color=accent)}
+ Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount")),color=accent)}
  TextButton(onClick={expenseSave(remove(expenses,o.optLong("id")))}){Text("Borrar")}
  }
  }}
@@ -227,7 +270,14 @@ class MainActivity:ComponentActivity(){
  if(add)AlertDialog(onDismissRequest={add=false},title={Text(if(tab==2)"Gasto" else "Tarea")},text={
  Column {
  OutlinedTextField(title,{title=it},label={Text("Descripción")})
- if(tab==2)OutlinedTextField(amount,{amount=it},label={Text("Cantidad")})
+ if(tab==2){
+ OutlinedTextField(amount,{amount=it},label={Text("Cantidad")})
+ Text("Categoría",style=MaterialTheme.typography.labelMedium)
+ val cats=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
+ cats.chunked(3).forEach{group->Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){
+ group.forEach{cat->FilterChip(selected=expenseCategory==cat,onClick={expenseCategory=cat},label={Text(cat,style=MaterialTheme.typography.labelSmall)})}
+ }}
+ }
  else {
  OutlinedTextField(whenText,{whenText=it},label={Text("Fecha y hora (dd/MM/yyyy HH:mm)")})
  Text("Deja vacío para una tarea sin alarma",style=MaterialTheme.typography.bodySmall)
@@ -238,7 +288,7 @@ class MainActivity:ComponentActivity(){
  val id=if(editing!=0L)editing else System.currentTimeMillis()
  if(tab==2){
  val a=if(editing!=0L)remove(expenses,id)else expenses
- a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0))
+ a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory))
  expenseSave(a)
  }else{
  val t=if(whenText.isBlank())0L else parse(whenText)?:-1L
