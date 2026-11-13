@@ -267,7 +267,7 @@ class MainActivity:ComponentActivity(){
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf("☑ Lista","▦ Agenda","◈ Gastos","⚙ Temas").forEachIndexed{idx,name->
+ listOf("☑ Lista","▦ Agenda","◈ Gastos","⚙ Config").forEachIndexed{idx,name->
  Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else panel)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
  }
  }
