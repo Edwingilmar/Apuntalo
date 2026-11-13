@@ -291,6 +291,62 @@ private val translations=mapOf(
  "No hay ubicación guardada" to listOf("No saved location","Nessuna posizione salvata","Aucune position enregistrée"),
  "Cerrar mapa" to listOf("Close map","Chiudi mappa","Fermer la carte")
 )
+private fun holidays(year:Int,month:Int):Map<Int,List<String>>{
+ val result=mutableMapOf<Int,MutableList<String>>()
+ fun add(day:Int,name:String){if(day in 1..31)result.getOrPut(day){mutableListOf()}.add(name)}
+ fun fixed(m:Int,d:Int,name:String,observed:Boolean=false){
+  if(month==m)add(d,name)
+  if(observed){
+   val c=Calendar.getInstance().apply{clear();set(year,m-1,d)}
+   val dayOfWeek=c.get(Calendar.DAY_OF_WEEK)
+   if(dayOfWeek==Calendar.SATURDAY)c.add(Calendar.DAY_OF_MONTH,-1)
+   else if(dayOfWeek==Calendar.SUNDAY)c.add(Calendar.DAY_OF_MONTH,1)
+   else return
+   if(c.get(Calendar.YEAR)==year&&c.get(Calendar.MONTH)==month-1)add(c.get(Calendar.DAY_OF_MONTH),"$name (observado)")
+  }
+ }
+ fun nth(m:Int,weekday:Int,n:Int,name:String){
+  if(month!=m)return
+  val c=Calendar.getInstance().apply{clear();set(year,m-1,1)}
+  val shift=(weekday-c.get(Calendar.DAY_OF_WEEK)+7)%7
+  add(1+shift+(n-1)*7,name)
+ }
+ fun last(m:Int,weekday:Int,name:String){
+  if(month!=m)return
+  val c=Calendar.getInstance().apply{clear();set(year,m,1);add(Calendar.DAY_OF_MONTH,-1)}
+  val shift=(c.get(Calendar.DAY_OF_WEEK)-weekday+7)%7
+  add(c.get(Calendar.DAY_OF_MONTH)-shift,name)
+ }
+ fixed(1,1,"Año Nuevo · EE. UU. y PR",true)
+ nth(1,Calendar.MONDAY,3,"Martin Luther King Jr. · EE. UU. y PR")
+ fixed(1,6,"Día de Reyes · PR")
+ nth(2,Calendar.MONDAY,3,"Día de los Presidentes · EE. UU. y PR")
+ fixed(3,22,"Día de la Abolición de la Esclavitud · PR")
+ last(5,Calendar.MONDAY,"Memorial Day · EE. UU. y PR")
+ fixed(6,19,"Juneteenth · EE. UU.",true)
+ fixed(7,4,"Independencia de EE. UU. · EE. UU. y PR",true)
+ fixed(7,25,"Día de la Constitución · PR")
+ nth(9,Calendar.MONDAY,1,"Labor Day · EE. UU. y PR")
+ nth(10,Calendar.MONDAY,2,"Columbus Day / Día de la Raza · EE. UU. y PR")
+ fixed(11,11,"Día de los Veteranos · EE. UU. y PR",true)
+ fixed(11,19,"Día del Descubrimiento de Puerto Rico · PR")
+ nth(11,Calendar.THURSDAY,4,"Acción de Gracias · EE. UU. y PR")
+ fixed(12,25,"Navidad · EE. UU. y PR",true)
+ // Computus gregoriano: Domingo de Resurrección
+ val a=year%19;val b=year/100;val c=year%100;val d=b/4;val e=b%4
+ val f=(b+8)/25;val g=(b-f+1)/3;val h=(19*a+b-d-g+15)%30
+ val i=c/4;val k=c%4;val l=(32+2*e+2*i-h-k+700)%7
+ val m=(a+11*h+22*l)/451;val n=h+l-7*m+114
+ val easter=Calendar.getInstance().apply{clear();set(year,n/31-1,n%31+1)}
+ fun relative(days:Int,name:String){
+  val date=easter.clone() as Calendar
+  date.add(Calendar.DAY_OF_MONTH,days)
+  if(date.get(Calendar.MONTH)==month-1)add(date.get(Calendar.DAY_OF_MONTH),name)
+ }
+ relative(-2,"Viernes Santo · PR")
+ relative(0,"Domingo de Resurrección · PR")
+ return result
+}
 private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;"fr"->2;else->-1};return if(i<0)key else translations[key]?.get(i)?:key}
 @Composable fun Screen(activity:MainActivity){
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
@@ -441,6 +497,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val month=SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(cal.time).replaceFirstChar{it.uppercase()}
  val offset=(cal.get(Calendar.DAY_OF_WEEK)+5)%7
  val days=cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+ val monthHolidays=holidays(cal.get(Calendar.YEAR),cal.get(Calendar.MONTH)+1)
  Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
  Column(Modifier.padding(14.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={monthOffset--;selectedDay=1}){Text("‹",style=MaterialTheme.typography.headlineSmall)};Text(month,modifier=Modifier.weight(1f),color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);TextButton(onClick={monthOffset++;selectedDay=1}){Text("›",style=MaterialTheme.typography.headlineSmall)}}
@@ -448,8 +505,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  for(week in 0 until ((offset+days+6)/7)){
  Row {for(col in 0..6){val day=week*7+col-offset+1
  if(day in 1..days){
+ val isHoliday=monthHolidays.containsKey(day)
  val hasTask=(0 until tasks.length()).any{idx->val time=tasks.getJSONObject(idx).optLong("time");if(time<=0)false else Calendar.getInstance().apply{timeInMillis=time}.let{it.get(Calendar.YEAR)==cal.get(Calendar.YEAR)&&it.get(Calendar.MONTH)==cal.get(Calendar.MONTH)&&it.get(Calendar.DAY_OF_MONTH)==day}}
- Box(Modifier.weight(1f).padding(2.dp).background(if(selectedDay==day)accent else if(hasTask)accent.copy(alpha=0.2f) else Color.Transparent,RoundedCornerShape(10.dp)).clickable{selectedDay=day}.height(43.dp),contentAlignment=Alignment.Center){Text(if(hasTask)"$day •" else "$day",color=if(selectedDay==day)Color.Black else Color.White)}
+ Box(Modifier.weight(1f).padding(2.dp).background(if(selectedDay==day)accent else if(isHoliday)Color(0xFFFFB86B).copy(alpha=0.26f) else if(hasTask)accent.copy(alpha=0.2f) else Color.Transparent,RoundedCornerShape(10.dp)).clickable{selectedDay=day}.height(43.dp),contentAlignment=Alignment.Center){Text("$day"+(if(hasTask)" •" else "")+(if(isHoliday)" ★" else ""),color=if(selectedDay==day)Color.Black else Color.White,fontSize=12.sp,maxLines=1)}
  }else Box(Modifier.weight(1f).height(43.dp)){}
  }}
  }
