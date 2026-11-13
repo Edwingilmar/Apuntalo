@@ -168,6 +168,66 @@ class MainActivity:ComponentActivity(){
  Text((if(selected)"✓ " else "")+name,color=MaterialTheme.colorScheme.onSurface,style=MaterialTheme.typography.labelSmall,maxLines=1)
  }
 }
+private val translations=mapOf(
+ "que se te olvida" to listOf("so you don't forget","così non te ne dimentichi","pour ne pas oublier"),
+ "Creada por Gilmar" to listOf("Created by Gilmar","Creata da Gilmar","Créée par Gilmar"),
+ "☑ Tareas" to listOf("☑ Tasks","☑ Attività","☑ Tâches"),
+ "🛒 Compras" to listOf("🛒 Shopping","🛒 Acquisti","🛒 Achats"),
+ "▦ Agenda" to listOf("▦ Calendar","▦ Agenda","▦ Agenda"),
+ "◈ Gastos" to listOf("◈ Expenses","◈ Spese","◈ Dépenses"),
+ "⚙ Config" to listOf("⚙ Settings","⚙ Impostazioni","⚙ Paramètres"),
+ "Listas de compras" to listOf("Shopping lists","Liste della spesa","Listes de courses"),
+ "Añadir producto" to listOf("Add item","Aggiungi prodotto","Ajouter un article"),
+ "Borrar" to listOf("Delete","Elimina","Supprimer"),
+ "Día \$selectedDay · Toca un día para consultar sus tareas" to listOf("Day \$selectedDay · Tap a day to see tasks","Giorno \$selectedDay · Tocca un giorno per vedere le attività","Jour \$selectedDay · Touchez un jour pour voir les tâches"),
+ "TU PRODUCTIVIDAD" to listOf("YOUR PRODUCTIVITY","LA TUA PRODUTTIVITÀ","VOTRE PRODUCTIVITÉ"),
+ "Mis tareas" to listOf("My tasks","Le mie attività","Mes tâches"),
+ "Próximos recordatorios" to listOf("Upcoming reminders","Promemoria imminenti","Rappels à venir"),
+ "+ Tarea" to listOf("+ Task","+ Attività","+ Tâche"),
+ "Compartir" to listOf("Share","Condividi","Partager"),
+ "Resumen financiero · " to listOf("Financial summary · ","Riepilogo finanziario · ","Résumé financier · "),
+ "Ingreso mensual (ej. 2500.00)" to listOf("Monthly income (e.g. 2500.00)","Entrate mensili (es. 2500.00)","Revenu mensuel (ex. 2500.00)"),
+ "BALANCE DISPONIBLE" to listOf("AVAILABLE BALANCE","SALDO DISPONIBILE","SOLDE DISPONIBLE"),
+ "DISTRIBUCIÓN DE GASTOS" to listOf("EXPENSE BREAKDOWN","RIPARTIZIONE SPESE","RÉPARTITION DES DÉPENSES"),
+ "Gastado" to listOf("Spent","Speso","Dépensé"),
+ "Registra un gasto para ver tu gráfica." to listOf("Add an expense to see your chart.","Aggiungi una spesa per vedere il grafico.","Ajoutez une dépense pour voir le graphique."),
+ "PRESUPUESTOS" to listOf("BUDGETS","BUDGET","BUDGETS"),
+ "Listo" to listOf("Done","Fatto","Terminé"),
+ "Editar límites" to listOf("Edit limits","Modifica limiti","Modifier les limites"),
+ "Presupuesto excedido" to listOf("Budget exceeded","Budget superato","Budget dépassé"),
+ "Te acercas al límite" to listOf("Approaching limit","Vicino al limite","Limite bientôt atteint"),
+ "+ Gasto" to listOf("+ Expense","+ Spesa","+ Dépense"),
+ "Notificaciones" to listOf("Notifications","Notifiche","Notifications"),
+ "Recordatorios de tareas con fecha y hora" to listOf("Timed task reminders","Promemoria delle attività con data e ora","Rappels des tâches avec date et heure"),
+ "Wallpaper personalizado" to listOf("Custom wallpaper","Sfondo personalizzato","Fond d’écran personnalisé"),
+ "Usa una foto de tu galería como fondo de la aplicación" to listOf("Use a gallery photo as the app background","Usa una foto della galleria come sfondo dell'app","Utilisez une photo de votre galerie comme fond de l’application"),
+ "⬆ Subir wallpaper" to listOf("⬆ Upload wallpaper","⬆ Carica sfondo","⬆ Importer un fond"),
+ "Quitar fondo" to listOf("Remove wallpaper","Rimuovi sfondo","Supprimer le fond"),
+ "Tema visual" to listOf("Visual theme","Tema visivo","Thème visuel"),
+ "Tema aleatorio" to listOf("Random theme","Tema casuale","Thème aléatoire"),
+ "Un tema diferente al abrir la app" to listOf("A different theme each time you open the app","Un tema diverso a ogni apertura dell'app","Un thème différent à chaque ouverture"),
+ "Gasto" to listOf("Expense","Spesa","Dépense"),
+ "Tarea" to listOf("Task","Attività","Tâche"),
+ "Descripción" to listOf("Description","Descrizione","Description"),
+ "Cantidad" to listOf("Amount","Importo","Montant"),
+ "Categoría" to listOf("Category","Categoria","Catégorie"),
+ "Fecha y hora (dd/MM/yyyy HH:mm)" to listOf("Date and time (dd/MM/yyyy HH:mm)","Data e ora (dd/MM/yyyy HH:mm)","Date et heure (dd/MM/yyyy HH:mm)"),
+ "Deja vacío para una tarea sin alarma" to listOf("Leave blank for a task without an alarm","Lascia vuoto per un'attività senza allarme","Laissez vide pour une tâche sans alarme"),
+ "Guardar" to listOf("Save","Salva","Enregistrer"),
+ "Cancelar" to listOf("Cancel","Annulla","Annuler"),
+ "Hogar" to listOf("Home","Casa","Maison"),
+ "Comida" to listOf("Food","Cibo","Alimentation"),
+ "Transporte" to listOf("Transport","Trasporti","Transport"),
+ "Familia" to listOf("Family","Famiglia","Famille"),
+ "Salud" to listOf("Health","Salute","Santé"),
+ "Otros" to listOf("Other","Altro","Autres"),
+ "Idioma" to listOf("Language","Lingua","Langue"),
+ "Español" to listOf("Spanish","Spagnolo","Espagnol"),
+ "Inglés" to listOf("English","Inglese","Anglais"),
+ "Italiano" to listOf("Italian","Italiano","Italien"),
+ "Francés" to listOf("French","Francese","Français")
+)
+private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;"fr"->2;else->-1};return if(i<0)key else translations[key]?.get(i)?:key}
 @Composable fun Screen(activity:MainActivity){
  val p=remember{activity.getSharedPreferences("apuntalo_alpha",0)}
  var tick by remember{mutableIntStateOf(0)}
@@ -176,6 +236,8 @@ class MainActivity:ComponentActivity(){
  val currentMonth=monthKey()
  val expenses=remember(tick,currentMonth){JSONArray().also{out->for(i in 0 until allExpenses.length()){val e=allExpenses.getJSONObject(i);if(e.optString("month",monthKey(e.optLong("id",System.currentTimeMillis())))==currentMonth)out.put(e)}}}
  val shopping=remember(tick){read(p,"shopping")}
+ var language by remember{mutableStateOf(p.getString("language","es")?:"es")}
+ fun t(value:String)=tr(language,value)
  var tab by remember{mutableIntStateOf(0)}
  var monthOffset by remember{mutableIntStateOf(0)}
  var selectedDay by remember{mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))}
@@ -263,12 +325,12 @@ class MainActivity:ComponentActivity(){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
  Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(60.dp))
  Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=if(theme=="Pure White"||theme=="Arctic")Color(0xFF14252E) else Color.White)
- Text("que se te olvida",color=accent)
+ Text(t("que se te olvida"),color=accent)
  }
- Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
+ Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf("☑ Tareas","🛒 Compras","▦ Agenda","◈ Gastos","⚙ Config").forEachIndexed{idx,name->
+ listOf(t("☑ Tareas"),t("🛒 Compras"),t("▦ Agenda"),t("◈ Gastos"),t("⚙ Config")).forEachIndexed{idx,name->
  Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else panel)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
  }
  }
@@ -276,9 +338,9 @@ class MainActivity:ComponentActivity(){
  when(tab){
  0,1,2->{
  if(tab==1){
- Text("Listas de compras",color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ Text(t("Listas de compras"),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  Row(verticalAlignment=Alignment.CenterVertically){
- OutlinedTextField(shoppingEntry,{shoppingEntry=it},modifier=Modifier.weight(1f),label={Text("Añadir producto")},singleLine=true)
+ OutlinedTextField(shoppingEntry,{shoppingEntry=it},modifier=Modifier.weight(1f),label={Text(t("Añadir producto"))},singleLine=true)
  Spacer(Modifier.width(6.dp))
  Button(onClick={if(shoppingEntry.isNotBlank()){shopping.put(JSONObject().put("id",System.currentTimeMillis()).put("title",shoppingEntry.trim()).put("done",false));shoppingSave(shopping);shoppingEntry=""}}){Text("+")}
  }
@@ -286,7 +348,7 @@ class MainActivity:ComponentActivity(){
  Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){
  Checkbox(checked=item.optBoolean("done"),onCheckedChange={item.put("done",it);shoppingSave(shopping)})
  Text(item.optString("title"),modifier=Modifier.weight(1f),color=foreground)
- TextButton(onClick={shoppingSave(remove(shopping,item.optLong("id")))}){Text("Borrar")}
+ TextButton(onClick={shoppingSave(remove(shopping,item.optLong("id")))}){Text(t("Borrar"))}
  }
  }}
  }else{
@@ -308,12 +370,12 @@ class MainActivity:ComponentActivity(){
  }}
  }
  Spacer(Modifier.height(8.dp))
- Text("Día $selectedDay · Toca un día para consultar sus tareas",color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ Text(t("Día \$selectedDay · Toca un día para consultar sus tareas").replace("\$selectedDay",selectedDay.toString()),color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  }
  }
  }
 
- Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(18.dp)){Text("TU PRODUCTIVIDAD",color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)"Mis tareas" else "Próximos recordatorios",color=foreground,modifier=Modifier.weight(1f));Button(onClick={title="";whenText="";editing=0;add=true}){Text("+ Tarea")}}
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(18.dp)){Text(t("TU PRODUCTIVIDAD"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)t("Mis tareas") else t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f));Button(onClick={title="";whenText="";editing=0;add=true}){Text(t("+ Tarea"))}}
  val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  LazyColumn {items(sorted,key={it.optLong("id")}){o->
   Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=panel)){
@@ -325,24 +387,24 @@ class MainActivity:ComponentActivity(){
     Text(o.optString("title"),color=Color.White,fontWeight=FontWeight.SemiBold)
     if(o.optLong("time")>0)Text(fmt(o.optLong("time")),color=teal,style=MaterialTheme.typography.bodySmall)
    }
-   TextButton(onClick={shareTask(activity,o.optString("title"),o.optLong("time"))},contentPadding=PaddingValues(horizontal=4.dp)){Text("Compartir",color=accent)}
-   TextButton(onClick={cancelAlarm(activity,o.optLong("id"));taskSave(remove(tasks,o.optLong("id")))}){Text("Borrar")}
+   TextButton(onClick={shareTask(activity,o.optString("title"),o.optLong("time"))},contentPadding=PaddingValues(horizontal=4.dp)){Text(t("Compartir"),color=accent)}
+   TextButton(onClick={cancelAlarm(activity,o.optLong("id"));taskSave(remove(tasks,o.optLong("id")))}){Text(t("Borrar"))}
   }}
  }}
  }
  }
  3->{
- Text("Resumen financiero · "+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
- OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text("Ingreso mensual (ej. 2500.00)")},singleLine=true)
+ Text(t("Resumen financiero · ")+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+ OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual (ej. 2500.00)"))},singleLine=true)
  val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
  Text("Gastos: $%.2f".format(total),color=foreground)
- Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text("BALANCE DISPONIBLE",color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
+ Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
  val categories=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  val chartColors=listOf(Color(0xFF62C4B4),Color(0xFFFFB86B),Color(0xFF8DA8FF),Color(0xFFCE8DF4),Color(0xFFFF7F91),Color(0xFFADB6C5))
  val sums=categories.map{category->(0 until expenses.length()).sumOf{idx->val e=expenses.getJSONObject(idx);if(e.optString("category","Otros")==category)e.optDouble("amount").coerceAtLeast(0.0) else 0.0}}
  Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
  Column(Modifier.padding(18.dp)){
- Text("DISTRIBUCIÓN DE GASTOS",color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold)
+ Text(t("DISTRIBUCIÓN DE GASTOS"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold)
  Spacer(Modifier.height(14.dp))
  Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){
  Canvas(Modifier.size(170.dp)){
@@ -359,7 +421,7 @@ class MainActivity:ComponentActivity(){
  }
  Column(horizontalAlignment=Alignment.CenterHorizontally){
  Text("$%.2f".format(total),color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
- Text("Gastado",color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.labelMedium)
+ Text(t("Gastado"),color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.labelMedium)
  }
  }
  Spacer(Modifier.height(12.dp))
@@ -371,13 +433,13 @@ class MainActivity:ComponentActivity(){
  Text("$%.2f".format(sums[idx]),color=Color.White)
  }
  }}
- if(total<=0.0)Text("Registra un gasto para ver tu gráfica.",color=Color.White.copy(alpha=0.7f))
+ if(total<=0.0)Text(t("Registra un gasto para ver tu gráfica."),color=Color.White.copy(alpha=0.7f))
  }
  }
  Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=panel)){
  Column(Modifier.padding(16.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){
- Text("PRESUPUESTOS",color=accent,modifier=Modifier.weight(1f),fontWeight=FontWeight.Bold)
+ Text(t("PRESUPUESTOS"),color=accent,modifier=Modifier.weight(1f),fontWeight=FontWeight.Bold)
  TextButton(onClick={budgetEditing=!budgetEditing}){Text(if(budgetEditing)"Listo" else "Editar límites")}
  }
  categories.forEachIndexed{idx,cat->
@@ -399,19 +461,19 @@ class MainActivity:ComponentActivity(){
  }
  }
  }
- Button(onClick={title="";amount="";expenseCategory="Otros";editing=0;add=true}){Text("+ Gasto")}
+ Button(onClick={title="";amount="";expenseCategory="Otros";editing=0;add=true}){Text(t("+ Gasto"))}
  LazyColumn {items((0 until expenses.length()).map{expenses.getJSONObject(it)}){o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
  Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount")),color=accent)}
- TextButton(onClick={expenseSave(remove(allExpenses,o.optLong("id")) )}){Text("Borrar")}
+ TextButton(onClick={expenseSave(remove(allExpenses,o.optLong("id")) )}){Text(t("Borrar"))}
  }
  }}
  }
  else->{
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
- Text("Notificaciones",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
- Text("Recordatorios de tareas con fecha y hora",color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ Text(t("Notificaciones"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text(t("Recordatorios de tareas con fecha y hora"),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  }
  Switch(checked=notificationsEnabled,onCheckedChange={enabled->
  notificationsEnabled=enabled
@@ -425,22 +487,22 @@ class MainActivity:ComponentActivity(){
  })
  }
  HorizontalDivider()
- Text("Wallpaper personalizado",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
- Text("Usa una foto de tu galería como fondo de la aplicación",color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ Text(t("Wallpaper personalizado"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text(t("Usa una foto de tu galería como fondo de la aplicación"),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
- Button(onClick={activity.chooseWallpaper()}){Text("⬆ Subir wallpaper")}
- if(wallpaper!=null)OutlinedButton(onClick={activity.removeWallpaper()}){Text("Quitar fondo")}
+ Button(onClick={activity.chooseWallpaper()}){Text(t("⬆ Subir wallpaper"))}
+ if(wallpaper!=null)OutlinedButton(onClick={activity.removeWallpaper()}){Text(t("Quitar fondo"))}
  }
  HorizontalDivider()
  {
  Text("Dim: ${(wallpaperDim*100).toInt()} %",color=foreground)
  Slider(value=wallpaperDim,onValueChange={wallpaperDim=it;p.edit().putFloat("wallpaper_dim",it).apply()},valueRange=0f..1f)
  }
- Text("Tema visual",color=foreground)
+ Text(t("Tema visual"),color=foreground)
  Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
  Column(Modifier.weight(1f)){
- Text("Tema aleatorio",color=foreground,style=MaterialTheme.typography.titleMedium)
- Text("Un tema diferente al abrir la app",color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ Text(t("Tema aleatorio"),color=foreground,style=MaterialTheme.typography.titleMedium)
+ Text(t("Un tema diferente al abrir la app"),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  }
  Switch(checked=randomTheme,onCheckedChange={enabled->
  randomTheme=enabled
@@ -470,18 +532,18 @@ class MainActivity:ComponentActivity(){
  }
  if(add)AlertDialog(onDismissRequest={add=false},title={Text(if(tab==2)"Gasto" else "Tarea")},text={
  Column {
- OutlinedTextField(title,{title=it},label={Text("Descripción")})
+ OutlinedTextField(title,{title=it},label={Text(t("Descripción"))})
  if(tab==2){
- OutlinedTextField(amount,{amount=it},label={Text("Cantidad")})
- Text("Categoría",style=MaterialTheme.typography.labelMedium)
+ OutlinedTextField(amount,{amount=it},label={Text(t("Cantidad"))})
+ Text(t("Categoría"),style=MaterialTheme.typography.labelMedium)
  val cats=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  cats.chunked(3).forEach{group->Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){
  group.forEach{cat->FilterChip(selected=expenseCategory==cat,onClick={expenseCategory=cat},label={Text(cat,style=MaterialTheme.typography.labelSmall)})}
  }}
  }
  else {
- OutlinedTextField(whenText,{whenText=it},label={Text("Fecha y hora (dd/MM/yyyy HH:mm)")})
- Text("Deja vacío para una tarea sin alarma",style=MaterialTheme.typography.bodySmall)
+ OutlinedTextField(whenText,{whenText=it},label={Text(t("Fecha y hora (dd/MM/yyyy HH:mm)"))})
+ Text(t("Deja vacío para una tarea sin alarma"),style=MaterialTheme.typography.bodySmall)
  }
  }
  },confirmButton={TextButton(onClick={
@@ -504,7 +566,7 @@ class MainActivity:ComponentActivity(){
  }
  add=false
  }
- }){Text("Guardar")}},dismissButton={TextButton(onClick={add=false}){Text("Cancelar")}})
+ }){Text(t("Guardar"))}},dismissButton={TextButton(onClick={add=false}){Text(t("Cancelar"))}})
 }
 
 class TaskWidgetProvider:AppWidgetProvider(){
