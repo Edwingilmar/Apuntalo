@@ -285,7 +285,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val shopping=remember(tick){read(p,"shopping")}
  var language by remember{mutableStateOf(p.getString("language","es")?:"es")}
  fun t(value:String)=tr(language,value)
- var tab by remember{mutableIntStateOf(0)}
+ var mainTab by remember{mutableIntStateOf(0)}
+ var tasksSubTab by remember{mutableIntStateOf(0)}
+ val tab=if(mainTab==0)tasksSubTab else mainTab+1
  var monthOffset by remember{mutableIntStateOf(0)}
  var selectedDay by remember{mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))}
  var add by remember{mutableStateOf(false)}
@@ -377,9 +379,19 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
- listOf(t("☑ Tareas"),t("🛒 Compras"),t("▦ Agenda"),t("◈ Gastos"),t("⚙ Config"),t("🚗 Mi carro")).forEachIndexed{idx,name->
- Button(onClick={tab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(tab==idx)accent else panel)){Text(name,color=if(tab==idx)Color.Black else Color.White)}
+ listOf(t("☑ Tareas"),t("▦ Agenda"),t("◈ Gastos"),t("⚙ Config"),t("🚗 Mi carro")).forEachIndexed{idx,name->
+ Button(onClick={mainTab=idx},contentPadding=PaddingValues(horizontal=7.dp),colors=ButtonDefaults.buttonColors(containerColor=if(mainTab==idx)accent else panel)){Text(name,color=if(mainTab==idx)Color.Black else Color.White)}
  }
+ }
+ if(mainTab==0){
+  Spacer(Modifier.height(8.dp))
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   listOf(t("☑ Tareas"),t("🛒 Compras")).forEachIndexed{idx,name->
+    OutlinedButton(onClick={tasksSubTab=idx},colors=ButtonDefaults.outlinedButtonColors(containerColor=if(tasksSubTab==idx)accent else panel),contentPadding=PaddingValues(horizontal=14.dp)){
+     Text(name,color=if(tasksSubTab==idx)Color.Black else Color.White)
+    }
+   }
+  }
  }
  Spacer(Modifier.height(14.dp))
  when(tab){
