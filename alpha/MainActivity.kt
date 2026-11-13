@@ -262,7 +262,7 @@ class MainActivity:ComponentActivity(){
  Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
  Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(60.dp))
- Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)
+ Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=if(theme=="Pure White"||theme=="Arctic")Color(0xFF14252E) else Color.White)
  Text("que se te olvida",color=accent)
  }
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
