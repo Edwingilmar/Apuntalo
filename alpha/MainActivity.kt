@@ -84,9 +84,10 @@ class MainActivity:ComponentActivity(){
  var amount by remember{mutableStateOf("")}
  var income by remember{mutableStateOf(p.getString("income","4700")?:"4700")}
  var editing by remember{mutableLongStateOf(0)}
- var theme by remember{mutableStateOf(p.getString("theme","Midnight")?:"Midnight")}
- var notificationsEnabled by remember{mutableStateOf(p.getBoolean("notifications_enabled",true))}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
+ var randomTheme by remember{mutableStateOf(p.getBoolean("random_theme",false))}
+ var theme by remember{mutableStateOf(if(p.getBoolean("random_theme",false))themes.random().also{p.edit().putString("theme",it).apply()} else p.getString("theme","Midnight")?:"Midnight")}
+ var notificationsEnabled by remember{mutableStateOf(p.getBoolean("notifications_enabled",true))}
  val accent=when(theme){
  "Crimson"->Color(0xFFFF6079);"Ocean"->Color(0xFF59B8EA);"Emerald"->Color(0xFF55D6A1)
  "Purple Haze"->Color(0xFFBB8CF5);"Burgundy"->Color(0xFFE287A0);"Sunset"->Color(0xFFFFA16D)
@@ -201,7 +202,18 @@ class MainActivity:ComponentActivity(){
  }
  HorizontalDivider()
  Text("Tema visual",color=foreground)
- LazyColumn {items(themes){name->Row(Modifier.fillMaxWidth().clickable{theme=name;p.edit().putString("theme",name).apply()}.padding(9.dp)){Text(if(theme==name)"✓ $name" else name,color=foreground)}}}
+ Row(Modifier.fillMaxWidth().padding(vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
+ Column(Modifier.weight(1f)){
+ Text("Tema aleatorio",color=foreground,style=MaterialTheme.typography.titleMedium)
+ Text("Un tema diferente al abrir la app",color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ }
+ Switch(checked=randomTheme,onCheckedChange={enabled->
+ randomTheme=enabled
+ p.edit().putBoolean("random_theme",enabled).apply()
+ if(enabled){theme=themes.filter{it!=theme}.random();p.edit().putString("theme",theme).apply()}
+ })
+ }
+ LazyColumn {items(themes){name->Row(Modifier.fillMaxWidth().clickable{randomTheme=false;theme=name;p.edit().putBoolean("random_theme",false).putString("theme",name).apply()}.padding(9.dp)){Text(if(theme==name && !randomTheme)"✓ $name" else name,color=foreground)}}}
  }
  }
  }
