@@ -74,6 +74,8 @@ class MainActivity:ComponentActivity(){
  val tasks=remember(tick){read(p,"tasks")}
  val expenses=remember(tick){read(p,"expenses")}
  var tab by remember{mutableIntStateOf(0)}
+ var monthOffset by remember{mutableIntStateOf(0)}
+ var selectedDay by remember{mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))}
  var add by remember{mutableStateOf(false)}
  var title by remember{mutableStateOf("")}
  var whenText by remember{mutableStateOf("")}
@@ -102,8 +104,31 @@ class MainActivity:ComponentActivity(){
  Spacer(Modifier.height(14.dp))
  when(tab){
  0,1->{
+ if(tab==1){
+ val cal=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)}
+ val month=SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(cal.time).replaceFirstChar{it.uppercase()}
+ val offset=(cal.get(Calendar.DAY_OF_WEEK)+5)%7
+ val days=cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+ Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=card)){
+ Column(Modifier.padding(14.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={monthOffset--;selectedDay=1}){Text("‹",style=MaterialTheme.typography.headlineSmall)};Text(month,modifier=Modifier.weight(1f),color=Color.White,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);TextButton(onClick={monthOffset++;selectedDay=1}){Text("›",style=MaterialTheme.typography.headlineSmall)}}
+ Row {listOf("L","M","X","J","V","S","D").forEach{Text(it,modifier=Modifier.weight(1f),color=accent,style=MaterialTheme.typography.labelMedium)}}
+ for(week in 0 until ((offset+days+6)/7)){
+ Row {for(col in 0..6){val day=week*7+col-offset+1
+ if(day in 1..days){
+ val hasTask=(0 until tasks.length()).any{idx->val time=tasks.getJSONObject(idx).optLong("time");if(time<=0)false else Calendar.getInstance().apply{timeInMillis=time}.let{it.get(Calendar.YEAR)==cal.get(Calendar.YEAR)&&it.get(Calendar.MONTH)==cal.get(Calendar.MONTH)&&it.get(Calendar.DAY_OF_MONTH)==day}}
+ Box(Modifier.weight(1f).padding(2.dp).background(if(selectedDay==day)accent else if(hasTask)accent.copy(alpha=0.2f) else Color.Transparent,RoundedCornerShape(10.dp)).clickable{selectedDay=day}.height(43.dp),contentAlignment=Alignment.Center){Text(if(hasTask)"$day •" else "$day",color=if(selectedDay==day)Color.Black else Color.White)}
+ }else Box(Modifier.weight(1f).height(43.dp)){}
+ }}
+ }
+ Spacer(Modifier.height(8.dp))
+ Text("Día $selectedDay · Toca un día para consultar sus tareas",color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
+ }
+ }
+ }
+
  Card(Modifier.fillMaxWidth().padding(bottom=14.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=card)){Column(Modifier.padding(18.dp)){Text("TU PRODUCTIVIDAD",color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold);Spacer(Modifier.height(7.dp));val done=(0 until tasks.length()).count{tasks.getJSONObject(it).optBoolean("done")};Text("$done de ${tasks.length()} completadas",color=Color.White,style=MaterialTheme.typography.titleLarge);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if(tasks.length()==0)0f else done.toFloat()/tasks.length()},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}};Row {Text(if(tab==0)"Mis tareas" else "Próximos recordatorios",color=foreground,modifier=Modifier.weight(1f));Button(onClick={title="";whenText="";editing=0;add=true}){Text("+ Tarea")}}
- val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0||it.optLong("time")>0}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
+ val sorted=(0 until tasks.length()).map{tasks.getJSONObject(it)}.filter{tab==0|| (it.optLong("time")>0 && Calendar.getInstance().apply{timeInMillis=it.optLong("time")}.let{d->val m=Calendar.getInstance().apply{set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)};d.get(Calendar.YEAR)==m.get(Calendar.YEAR)&&d.get(Calendar.MONTH)==m.get(Calendar.MONTH)&&d.get(Calendar.DAY_OF_MONTH)==selectedDay})}.sortedWith(compareBy({it.optBoolean("done")},{if(it.optLong("time")==0L)Long.MAX_VALUE else it.optLong("time")}))
  LazyColumn {items(sorted,key={it.optLong("id")}){o->
   Card(Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=card)){
   Row(Modifier.padding(10.dp)){
