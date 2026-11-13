@@ -188,10 +188,44 @@ class MainActivity:ComponentActivity(){
  fun shoppingSave(a:JSONArray){save(p,"shopping",a);refresh()}
  MaterialTheme(colorScheme=if(foreground==Color.Black)lightColorScheme(primary=accent)else darkColorScheme(primary=accent)){
  Box(Modifier.fillMaxSize().background(background)){
- if(wallpaper!=null)Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
- Column(Modifier.fillMaxSize().background(if(wallpaper!=null)Color.Black.copy(alpha=wallpaperDim) else Color.Transparent).background(if(wallpaper==null)Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.28f))) else Brush.verticalGradient(listOf(Color.Transparent,Color.Transparent))).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(52.dp));Spacer(Modifier.width(12.dp));Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)}
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){Text("que se te olvida",color=accent)}
+ if(wallpaper==null){
+ Canvas(Modifier.fillMaxSize()){
+ val w=size.width;val h=size.height
+ drawRect(brush=Brush.verticalGradient(listOf(background,background,accent.copy(alpha=0.26f)),startY=0f,endY=h))
+ val wave1=Path().apply{
+ moveTo(0f,h*.78f)
+ cubicTo(w*.22f,h*.91f,w*.43f,h*.94f,w*.65f,h*.78f)
+ cubicTo(w*.83f,h*.66f,w*.91f,h*.62f,w,h*.60f)
+ lineTo(w,h);lineTo(0f,h);close()
+ }
+ drawPath(wave1,brush=Brush.verticalGradient(listOf(accent.copy(alpha=.05f),accent.copy(alpha=.72f),accent.copy(alpha=.10f)),startY=h*.60f,endY=h))
+ val wave2=Path().apply{
+ moveTo(0f,h*.89f)
+ cubicTo(w*.28f,h*.82f,w*.41f,h*1.04f,w*.66f,h*.91f)
+ cubicTo(w*.86f,h*.82f,w*.92f,h*.87f,w,h*.83f)
+ lineTo(w,h);lineTo(0f,h);close()
+ }
+ drawPath(wave2,brush=Brush.verticalGradient(listOf(accent.copy(alpha=.04f),accent.copy(alpha=.42f),background.copy(alpha=.86f)),startY=h*.82f,endY=h))
+ val line1=Path().apply{
+ moveTo(0f,h*.78f)
+ cubicTo(w*.22f,h*.91f,w*.43f,h*.94f,w*.65f,h*.78f)
+ cubicTo(w*.83f,h*.66f,w*.91f,h*.62f,w,h*.60f)
+ }
+ drawPath(line1,color=accent.copy(alpha=.84f),style=Stroke(width=2.dp.toPx()))
+ val line2=Path().apply{
+ moveTo(0f,h*.89f)
+ cubicTo(w*.28f,h*.82f,w*.41f,h*1.04f,w*.66f,h*.91f)
+ cubicTo(w*.86f,h*.82f,w*.92f,h*.87f,w,h*.83f)
+ }
+ drawPath(line2,color=accent.copy(alpha=.55f),style=Stroke(width=1.5.dp.toPx()))
+ }
+ }else Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
+ Column(Modifier.fillMaxSize().background(if(wallpaper!=null)Color.Black.copy(alpha=wallpaperDim) else Color.Transparent).statusBarsPadding().navigationBarsPadding().padding(horizontal=18.dp, vertical=12.dp)){
+ Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
+ Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo APÚNTALO",modifier=Modifier.size(60.dp))
+ Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=foreground)
+ Text("que se te olvida",color=accent)
+ }
  Text("Creada por Gilmar",style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
