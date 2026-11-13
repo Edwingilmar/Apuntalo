@@ -630,7 +630,6 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
- }
  else->{
  val revision=activity.carRevision.intValue
  val carLat=remember(revision){p.getString("car_lat",null)}
@@ -663,10 +662,10 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
- if(add)AlertDialog(onDismissRequest={add=false},title={Text(if(tab==2)"Gasto" else "Tarea")},text={
+ if(add)AlertDialog(onDismissRequest={add=false},title={Text(if(tab==3)"Gasto" else "Tarea")},text={
  Column {
  OutlinedTextField(title,{title=it},label={Text(t("Descripción"))})
- if(tab==2){
+ if(tab==3){
  OutlinedTextField(amount,{amount=it},label={Text(t("Cantidad"))})
  Text(t("Categoría"),style=MaterialTheme.typography.labelMedium)
  val cats=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
@@ -701,7 +700,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  },confirmButton={TextButton(onClick={
  if(title.isNotBlank()){
  val id=if(editing!=0L)editing else System.currentTimeMillis()
- if(tab==2){
+ if(tab==3){
  val a=if(editing!=0L)remove(allExpenses,id)else allExpenses
  a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory).put("month",currentMonth))
  expenseSave(a)
