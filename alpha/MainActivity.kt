@@ -18,6 +18,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.media.ExifInterface
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
@@ -143,7 +146,36 @@ class MainActivity:ComponentActivity(){
 
  private val wallpaperPicker=registerForActivityResult(ActivityResultContracts.GetContent()){uri->
   if(uri!=null)try{
-   contentResolver.openInputStream(uri)?.use{input->File(filesDir,"wallpaper.jpg").outputStream().use{output->input.copyTo(output)}}
+   val orientation=contentResolver.openInputStream(uri)?.use{stream->
+    ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL)
+   }?:ExifInterface.ORIENTATION_NORMAL
+   val bounds=BitmapFactory.Options().apply{inJustDecodeBounds=true}
+   contentResolver.openInputStream(uri)?.use{BitmapFactory.decodeStream(it,null,bounds)}
+   var sample=1
+   while(bounds.outWidth/sample>2200||bounds.outHeight/sample>2200)sample*=2
+   val source=contentResolver.openInputStream(uri)?.use{
+    BitmapFactory.decodeStream(it,null,BitmapFactory.Options().apply{inSampleSize=sample})
+   }?:throw IllegalArgumentException("Imagen no válida")
+   val matrix=Matrix().apply{
+    when(orientation){
+     ExifInterface.ORIENTATION_ROTATE_90->postRotate(90f)
+     ExifInterface.ORIENTATION_ROTATE_180->postRotate(180f)
+     ExifInterface.ORIENTATION_ROTATE_270->postRotate(270f)
+     ExifInterface.ORIENTATION_FLIP_HORIZONTAL->postScale(-1f,1f)
+     ExifInterface.ORIENTATION_FLIP_VERTICAL->postScale(1f,-1f)
+     ExifInterface.ORIENTATION_TRANSPOSE->{postRotate(90f);postScale(-1f,1f)}
+     ExifInterface.ORIENTATION_TRANSVERSE->{postRotate(270f);postScale(-1f,1f)}
+    }
+   }
+   val upright=Bitmap.createBitmap(source,0,0,source.width,source.height,matrix,true)
+   val targetRatio=9f/19.5f
+   val cropWidth=if(upright.width.toFloat()/upright.height>targetRatio)(upright.height*targetRatio).toInt() else upright.width
+   val cropHeight=if(upright.width.toFloat()/upright.height>targetRatio)upright.height else (upright.width/targetRatio).toInt()
+   val portrait=Bitmap.createBitmap(upright,(upright.width-cropWidth)/2,(upright.height-cropHeight)/2,cropWidth,cropHeight)
+   File(filesDir,"wallpaper.jpg").outputStream().use{portrait.compress(Bitmap.CompressFormat.JPEG,92,it)}
+   if(portrait!==upright)portrait.recycle()
+   if(upright!==source)upright.recycle()
+   source.recycle()
    getSharedPreferences("apuntalo_alpha",0).edit().putLong("wallpaper_revision",System.currentTimeMillis()).apply()
    wallpaperRevision.value++
   }catch(_:Exception){}
