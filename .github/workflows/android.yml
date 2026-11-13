@@ -40,6 +40,9 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Align Java and Kotlin JVM targets
+        run: echo 'tasks.withType<JavaCompile>().configureEach { options.release.set(17) }' >> "$PROJECT_DIR/app/build.gradle.kts"
+
       - name: Build APK
         run: gradle -p "$PROJECT_DIR" assembleDebug
 
