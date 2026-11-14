@@ -778,6 +778,11 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }}
  }
  Spacer(Modifier.height(8.dp))
+ val selectedHolidays=monthHolidays[selectedDay].orEmpty()
+ if(selectedHolidays.isNotEmpty()){
+  Text("★ Feriados de este día",color=Color(0xFFFFB86B),fontWeight=FontWeight.Bold)
+  selectedHolidays.forEach{holiday->Text("• $holiday",color=Color.White)}
+ }else Text("Sin feriados registrados para este día",color=Color.White.copy(alpha=0.65f),style=MaterialTheme.typography.bodySmall)
  Text(t("Día \$selectedDay · Toca un día para consultar sus tareas").replace("\$selectedDay",selectedDay.toString()),color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  }
  }
