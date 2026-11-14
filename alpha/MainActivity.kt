@@ -72,6 +72,27 @@ private const val CHANNEL="apuntalo_tasks"
 private fun monthKey(t:Long=System.currentTimeMillis())=SimpleDateFormat("yyyy-MM",Locale.US).format(Date(t))
 private fun fmt(t:Long)=SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(Date(t))
 private fun parse(s:String):Long?=try { SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).apply{isLenient=false}.parse(s)?.time }catch(_:Exception){null}
+private fun moneyValue(raw:String):java.math.BigDecimal?{
+ val cleaned=raw.trim().replace(Regex("[\\s\\$€£]"),"")
+ if(cleaned.isEmpty())return null
+ val comma=cleaned.lastIndexOf(',')
+ val dot=cleaned.lastIndexOf('.')
+ val normalized=when{
+  comma>=0&&dot>=0->if(comma>dot)cleaned.replace(".","").replace(',','.') else cleaned.replace(",","")
+  comma>=0->if(cleaned.length-comma-1==3&&cleaned.substring(0,comma).length<=3)cleaned.replace(",","") else cleaned.replace(',','.')
+  dot>=0&&cleaned.length-dot-1==3&&cleaned.substring(0,dot).length<=3->cleaned.replace(".","")
+  else->cleaned
+ }
+ return runCatching{java.math.BigDecimal(normalized).setScale(2,java.math.RoundingMode.HALF_UP)}.getOrNull()
+}
+private fun expenseTotal(expenses:JSONArray):java.math.BigDecimal{
+ var sum=java.math.BigDecimal.ZERO
+ for(i in 0 until expenses.length()){
+  val value=expenses.getJSONObject(i).optString("amount","0")
+  sum=sum.add(moneyValue(value)?:java.math.BigDecimal.ZERO)
+ }
+ return sum
+}
 private fun read(p:android.content.SharedPreferences,k:String):JSONArray=try{JSONArray(p.getString(k,"[]"))}catch(_:Exception){JSONArray()}
 private fun save(p:android.content.SharedPreferences,k:String,a:JSONArray){p.edit().putString(k,a.toString()).apply();if(k=="tasks")try{p.javaClass;val context=appContext;context?.sendBroadcast(Intent("com.gilmar.apuntalo.REFRESH_WIDGET").setPackage(context.packageName))}catch(_:Exception){}}
 private fun remove(a:JSONArray,id:Long):JSONArray=JSONArray().also{out->for(i in 0 until a.length()){val o=a.getJSONObject(i);if(o.optLong("id")!=id)out.put(o)}}
@@ -796,12 +817,12 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  3->{
  Text(t("Resumen financiero · ")+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual"))},placeholder={Text(t("Ejemplo: $2,000.00"))},singleLine=true)
- val total=(0 until expenses.length()).sumOf{expenses.getJSONObject(it).optDouble("amount")}
+ val total=expenseTotal(expenses).toDouble()
  Text("Gastos: $%.2f".format(total),color=foreground)
- Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format((income.toDoubleOrNull()?:0.0)-total),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((income.toDoubleOrNull()?:0.0)<=0)0f else (total/(income.toDoubleOrNull()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
+ Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format(((moneyValue(income)?.toDouble()?:0.0)-total)),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((moneyValue(income)?.toDouble()?:0.0)<=0)0f else (total/(moneyValue(income)?.toDouble()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
  val categories=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  val chartColors=listOf(Color(0xFF62C4B4),Color(0xFFFFB86B),Color(0xFF8DA8FF),Color(0xFFCE8DF4),Color(0xFFFF7F91),Color(0xFFADB6C5))
- val sums=categories.map{category->(0 until expenses.length()).sumOf{idx->val e=expenses.getJSONObject(idx);if(e.optString("category","Otros")==category)e.optDouble("amount").coerceAtLeast(0.0) else 0.0}}
+ val sums=categories.map{category->(0 until expenses.length()).sumOf{idx->val e=expenses.getJSONObject(idx);if(e.optString("category","Otros")==category)(moneyValue(e.optString("amount","0"))?.toDouble()?:0.0).coerceAtLeast(0.0) else 0.0}}
  Card(Modifier.fillMaxWidth().padding(vertical=10.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){
  Column(Modifier.padding(18.dp)){
  Text(t("DISTRIBUCIÓN DE GASTOS"),color=accent,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.Bold)
@@ -982,7 +1003,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Column {
  OutlinedTextField(title,{title=it},label={Text(t("Descripción"))})
  if(tab==3){
- OutlinedTextField(amount,{amount=it},label={Text(t("Cantidad"))})
+ OutlinedTextField(amount,{amount=it},label={Text(t("Cantidad"))},isError=amount.isNotBlank()&&moneyValue(amount)==null)
+ if(amount.isNotBlank()&&moneyValue(amount)==null)Text("Cantidad inválida",color=Color.Red)
  Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=expenseRecurring,onCheckedChange={expenseRecurring=it});Text("Repetir este gasto cada mes") }
  Text(t("Categoría"),style=MaterialTheme.typography.labelMedium)
  val cats=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
@@ -1016,12 +1038,12 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  },confirmButton={TextButton(onClick={
- if(title.isNotBlank()){
+ if(title.isNotBlank() && (tab!=3 || moneyValue(amount)!=null)){
  val id=if(editing!=0L)editing else System.currentTimeMillis()
  if(tab==3){
  val a=if(editing!=0L)remove(allExpenses,id)else allExpenses
  val old=(0 until allExpenses.length()).firstOrNull{allExpenses.getJSONObject(it).optLong("id")==id}?.let{allExpenses.getJSONObject(it)}
- a.put(JSONObject().put("id",id).put("title",title).put("amount",amount.toDoubleOrNull()?:0.0).put("category",expenseCategory).put("month",currentMonth).put("recurring",expenseRecurring).put("recurringOrigin",old?.optLong("recurringOrigin",id)?:id))
+ a.put(JSONObject().put("id",id).put("title",title).put("amount",moneyValue(amount)!!.toDouble()).put("category",expenseCategory).put("month",currentMonth).put("recurring",expenseRecurring).put("recurringOrigin",old?.optLong("recurringOrigin",id)?:id))
  expenseSave(a)
  }else{
  val t=if(!remindMe)0L else if(whenText.isBlank())-1L else parse(whenText)?:-1L
