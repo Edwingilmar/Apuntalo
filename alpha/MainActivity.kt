@@ -1041,6 +1041,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
+ }
  Row(
   Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
    .background(panel.copy(alpha=0.97f)).padding(horizontal=6.dp,vertical=7.dp),
@@ -1067,7 +1068,6 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
     Text(label,fontSize=9.sp,maxLines=1,softWrap=false,color=if(selected)Color.Black else foreground)
    }
   }
- }
  }
  }
  if(add)AlertDialog(onDismissRequest={add=false},title={Text(if(tab==3)"Gasto" else "Tarea")},text={
