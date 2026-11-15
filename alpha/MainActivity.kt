@@ -1059,6 +1059,15 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
+ if(tab==3){
+  Box(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end=20.dp,bottom=86.dp)){
+   Button(
+    onClick={title="";amount="";expenseCategory="Otros";expenseRecurring=false;editing=0;add=true},
+    colors=ButtonDefaults.buttonColors(containerColor=accent),
+    shape=RoundedCornerShape(18.dp)
+   ){Text(t("+ Gasto"),color=Color.Black,fontWeight=FontWeight.Bold)}
+  }
+ }
  Row(
   Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
    .background(panel.copy(alpha=0.97f)).padding(horizontal=6.dp,vertical=7.dp),
