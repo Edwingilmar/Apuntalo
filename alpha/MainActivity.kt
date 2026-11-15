@@ -800,6 +800,18 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val days=cal.getActualMaximum(Calendar.DAY_OF_MONTH)
  val monthHolidays=holidays(cal.get(Calendar.YEAR),cal.get(Calendar.MONTH)+1)
  val calendarRevision=activity.calendarRevision.intValue
+ Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+  Text(t("Próximos recordatorios"),color=foreground,modifier=Modifier.weight(1f))
+  TextButton(onClick={shareList(activity,t("Mis tareas"),tasks)}){Text("↗ "+t("Compartir"))}
+  Button(onClick={
+   title="";amount="";editing=0;taskRecurring=false;remindMe=true
+   val chosen=Calendar.getInstance().apply{
+    set(Calendar.DAY_OF_MONTH,1);add(Calendar.MONTH,monthOffset)
+    set(Calendar.DAY_OF_MONTH,selectedDay);set(Calendar.HOUR_OF_DAY,9);set(Calendar.MINUTE,0);set(Calendar.SECOND,0)
+   }
+   whenText=fmt(chosen.timeInMillis);add=true
+  }){Text("+ Evento")}
+ }
  OutlinedButton(onClick={activity.synchronizeCalendar()}){Text(t("Sincronizar calendario del teléfono"))}
  Text(t("Google Calendar y Samsung Calendar: requiere permiso y un calendario editable en el dispositivo."),color=foreground.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
 
