@@ -1073,16 +1073,19 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
   )
   tabs.forEach{(symbol,label,idx)->
    val selected=mainTab==idx
+   val featuredCalendar=idx==2
+   val tabShape=if(featuredCalendar)RoundedCornerShape(19.dp) else RoundedCornerShape(topStart=13.dp,topEnd=13.dp,bottomStart=4.dp,bottomEnd=4.dp)
    Column(
-    Modifier.weight(1f).height(61.dp)
-     .clip(RoundedCornerShape(topStart=13.dp,topEnd=13.dp,bottomStart=4.dp,bottomEnd=4.dp))
-     .background(if(selected)accent else background.copy(alpha=0.85f))
-     .border(1.dp,if(selected)accent else accent.copy(alpha=0.35f),RoundedCornerShape(topStart=13.dp,topEnd=13.dp,bottomStart=4.dp,bottomEnd=4.dp))
+    Modifier.weight(1f)
+     .then(if(featuredCalendar)Modifier.offset(y=(-11).dp).height(73.dp) else Modifier.height(61.dp))
+     .clip(tabShape)
+     .background(if(selected)accent else if(featuredCalendar)accent.copy(alpha=0.22f) else background.copy(alpha=0.85f))
+     .border(if(featuredCalendar)2.dp else 1.dp,if(selected||featuredCalendar)accent else accent.copy(alpha=0.35f),tabShape)
      .clickable{mainTab=idx}.padding(vertical=5.dp),
     horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center
    ){
-    Text(symbol,fontSize=20.sp,color=if(selected)Color.Black else foreground)
-    Text(label,fontSize=9.sp,maxLines=1,softWrap=false,color=if(selected)Color.Black else foreground)
+    Text(symbol,fontSize=if(featuredCalendar)27.sp else 20.sp,color=if(selected)Color.Black else if(featuredCalendar)accent else foreground)
+    Text(label,fontSize=if(featuredCalendar)10.sp else 9.sp,maxLines=1,softWrap=false,color=if(selected)Color.Black else if(featuredCalendar)accent else foreground,fontWeight=if(featuredCalendar)FontWeight.Bold else FontWeight.Normal)
    }
   }
  }
