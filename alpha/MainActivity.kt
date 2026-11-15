@@ -418,7 +418,7 @@ class MainActivity:ComponentActivity(){
 }
 @Composable fun AppEntry(activity:MainActivity){
  var showingSplash by remember{mutableStateOf(true)}
- LaunchedEffect(Unit){delay(2000L);showingSplash=false}
+ LaunchedEffect(Unit){delay(4000L);showingSplash=false}
  if(showingSplash){
  BoxWithConstraints(Modifier.fillMaxSize().background(Color.White)){
  Image(painter=painterResource(id=R.drawable.apuntalo_splash),contentDescription="APÚNTALO",contentScale=ContentScale.Fit,modifier=Modifier.fillMaxSize())
