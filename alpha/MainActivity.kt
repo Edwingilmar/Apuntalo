@@ -859,6 +859,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  3->{
+ Button(onClick={title="";amount="";expenseCategory="Otros";expenseRecurring=false;editing=0;add=true}){Text(t("+ Gasto"))}
  Text(t("Resumen financiero · ")+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual"))},placeholder={Text(t("Ejemplo: $2,000.00"))},singleLine=true)
  val total=expenseTotal(expenses).toDouble()
@@ -926,7 +927,6 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
- Button(onClick={title="";amount="";expenseCategory="Otros";expenseRecurring=false;editing=0;add=true}){Text(t("+ Gasto"))}
  Column {(0 until expenses.length()).map{expenses.getJSONObject(it)}.forEach{o->
  Row(Modifier.fillMaxWidth().padding(8.dp),horizontalArrangement=Arrangement.SpaceBetween){
  Column(Modifier.weight(1f).clickable{editing=o.optLong("id");title=o.optString("title");amount=o.optDouble("amount").toString();expenseCategory=o.optString("category","Otros");expenseRecurring=o.optBoolean("recurring",false);add=true}){Text(o.optString("title"),color=foreground);Text("$%.2f".format(o.optDouble("amount"))+(if(o.optBoolean("recurring",false))" · ↻ Recurrente" else ""),color=accent)}
