@@ -935,20 +935,11 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }}
  }
  4->{
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)){
- listOf("Idioma","Notificaciones","Apariencia").forEachIndexed{idx,label->
+ Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){
+ listOf("Idioma","Notificaciones","Apariencia","Backup").forEachIndexed{idx,label->
  OutlinedButton(onClick={configSubTab=idx},colors=ButtonDefaults.outlinedButtonColors(containerColor=if(configSubTab==idx)accent else panel),contentPadding=PaddingValues(horizontal=9.dp)){
  Text(t(label),color=if(configSubTab==idx)Color.Black else Color.White)
  }
- }
- }
- if(configSubTab==0){
- HorizontalDivider()
- Text(t("Respaldo de APÚNTALO"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
- Text(t("Guarda o recupera tareas, gastos, compras, ajustes y wallpaper. Elige Google Drive en el selector de archivos."),color=foreground)
- Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
- Button(onClick={activity.createBackup()}){Text(t("Crear respaldo"))}
- OutlinedButton(onClick={activity.restoreBackup()}){Text(t("Restaurar"))}
  }
  }
  if(configSubTab==1){
@@ -971,12 +962,28 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  if(configSubTab==0){
  Text(t("Idioma"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
- var languageExpanded by remember{mutableStateOf(false)}
- Box {
-  OutlinedButton(onClick={languageExpanded=true}){Text(when(language){"en"->"English";"it"->"Italiano";"fr"->"Français";else->"Español"})}
-  DropdownMenu(expanded=languageExpanded,onDismissRequest={languageExpanded=false}){
-   listOf("es" to "Español","en" to "English","it" to "Italiano","fr" to "Français").forEach{(code,name)->
-    DropdownMenuItem(text={Text(name)},onClick={language=code;p.edit().putString("language",code).apply();languageExpanded=false})
+ val languageOptions=listOf(
+  Triple("es","🇵🇷","Español"),
+  Triple("en","🇺🇸","English"),
+  Triple("it","🇮🇹","Italiano"),
+  Triple("fr","🇫🇷","Français")
+ )
+ languageOptions.chunked(2).forEach{group->
+  Row(Modifier.fillMaxWidth().padding(vertical=5.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   group.forEach{(code,flag,name)->
+    val selected=language==code
+    Column(
+     Modifier.weight(1f).height(105.dp)
+      .clip(RoundedCornerShape(12.dp))
+      .background(if(selected)accent.copy(alpha=0.24f) else panel)
+      .border(if(selected)2.dp else 1.dp,if(selected)accent else accent.copy(alpha=0.3f),RoundedCornerShape(12.dp))
+      .clickable{language=code;p.edit().putString("language",code).apply()}.padding(8.dp),
+     horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center
+    ){
+     Text(flag,fontSize=32.sp)
+     Spacer(Modifier.height(4.dp))
+     Text(name,color=foreground,fontSize=14.sp,fontWeight=if(selected)FontWeight.Bold else FontWeight.Normal)
+    }
    }
   }
  }
@@ -1020,6 +1027,16 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
+ if(configSubTab==3){
+ HorizontalDivider()
+ Text("Backup",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text(t("Guarda o recupera tareas, gastos, compras, ajustes y wallpaper. Elige Google Drive en el selector de archivos."),color=foreground)
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+ Button(onClick={activity.createBackup()}){Text(t("Crear respaldo"))}
+ OutlinedButton(onClick={activity.restoreBackup()}){Text(t("Restaurar"))}
+ }
+ }
+
  else->{
  val revision=activity.carRevision.intValue
  val carLat=remember(revision){p.getString("car_lat",null)}
