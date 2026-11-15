@@ -1026,7 +1026,6 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
- }
  if(configSubTab==3){
  HorizontalDivider()
  Text("Backup",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
@@ -1034,6 +1033,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
  Button(onClick={activity.createBackup()}){Text(t("Crear respaldo"))}
  OutlinedButton(onClick={activity.restoreBackup()}){Text(t("Restaurar"))}
+ }
  }
  }
 
