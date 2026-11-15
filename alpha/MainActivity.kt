@@ -1040,6 +1040,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
   OutlinedButton(onClick={activity.clearCar()}){Text(t("Quitar ubicación"))}
  }
  }
+ }
  Row(
   Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
    .background(panel.copy(alpha=0.97f)).padding(horizontal=6.dp,vertical=7.dp),
