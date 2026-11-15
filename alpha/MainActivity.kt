@@ -753,7 +753,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }else Box(Modifier.fillMaxSize().background(Color.White)){
  Image(bitmap=wallpaper,contentDescription="Fondo personalizado",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize().alpha(wallpaperDim))
  }
- Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal=18.dp, vertical=12.dp)){
+ Column(Modifier.fillMaxSize().background(Color.Transparent).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(start=18.dp,end=18.dp,top=12.dp,bottom=100.dp)){
  Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
  Image(painter=painterResource(id=R.drawable.apuntalo_launcher_logo),contentDescription="Logo original de la libreta y el lápiz",contentScale=ContentScale.Fit,modifier=Modifier.size(96.dp))
  Text("APÚNTALO",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black,color=if(theme=="Pure White"||theme=="Arctic")Color(0xFF14252E) else Color.White)
@@ -761,11 +761,6 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  Text(t("Creada por Gilmar"),style=MaterialTheme.typography.labelSmall,color=foreground)
  Spacer(Modifier.height(12.dp))
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(2.dp)){
- listOf(t("☑ Tareas"),t("▦ Calendario"),t("◈ Gastos"),t("🚗 Mi carro"),t("⚙ Config")).forEachIndexed{idx,name->
- Button(onClick={mainTab=idx},modifier=Modifier.weight(1f),contentPadding=PaddingValues(horizontal=1.dp),colors=ButtonDefaults.buttonColors(containerColor=if(mainTab==idx)accent else panel)){Text(name,color=if(mainTab==idx)Color.Black else Color.White,fontSize=10.sp,maxLines=1,softWrap=false)}
- }
- }
  if(mainTab==0){
   Spacer(Modifier.height(8.dp))
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -1045,6 +1040,33 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
   OutlinedButton(onClick={activity.clearCar()}){Text(t("Quitar ubicación"))}
  }
  }
+ }
+ Row(
+  Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding()
+   .background(panel.copy(alpha=0.97f)).padding(horizontal=6.dp,vertical=7.dp),
+  horizontalArrangement=Arrangement.spacedBy(3.dp)
+ ){
+  val tabs=listOf(
+   Triple("☑",t("☑ Tareas").removePrefix("☑ ").trim(),0),
+   Triple("▦",t("▦ Calendario").removePrefix("▦ ").trim(),1),
+   Triple("◈",t("◈ Gastos").removePrefix("◈ ").trim(),2),
+   Triple("🚗",t("🚗 Mi carro").removePrefix("🚗 ").trim(),3),
+   Triple("⚙",t("⚙ Config").removePrefix("⚙ ").trim(),4)
+  )
+  tabs.forEach{(symbol,label,idx)->
+   val selected=mainTab==idx
+   Column(
+    Modifier.weight(1f).height(61.dp)
+     .clip(RoundedCornerShape(topStart=13.dp,topEnd=13.dp,bottomStart=4.dp,bottomEnd=4.dp))
+     .background(if(selected)accent else background.copy(alpha=0.85f))
+     .border(1.dp,if(selected)accent else accent.copy(alpha=0.35f),RoundedCornerShape(topStart=13.dp,topEnd=13.dp,bottomStart=4.dp,bottomEnd=4.dp))
+     .clickable{mainTab=idx}.padding(vertical=5.dp),
+    horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center
+   ){
+    Text(symbol,fontSize=20.sp,color=if(selected)Color.Black else foreground)
+    Text(label,fontSize=9.sp,maxLines=1,softWrap=false,color=if(selected)Color.Black else foreground)
+   }
+  }
  }
  }
  }
