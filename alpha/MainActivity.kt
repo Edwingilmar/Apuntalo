@@ -662,7 +662,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  fun t(value:String)=tr(language,value)
  var mainTab by remember{mutableIntStateOf(0)}
  var tasksSubTab by remember{mutableIntStateOf(0)}
- val tab=when(mainTab){0->tasksSubTab;1->2;2->3;3->5;else->4}
+ val tab=when(mainTab){0->tasksSubTab;1->3;2->2;3->5;else->4}
  var monthOffset by remember{mutableIntStateOf(0)}
  var selectedDay by remember{mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH))}
  var add by remember{mutableStateOf(false)}
@@ -1066,8 +1066,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  ){
   val tabs=listOf(
    Triple("☑",t("☑ Tareas").removePrefix("☑ ").trim(),0),
-   Triple("▦",t("▦ Calendario").removePrefix("▦ ").trim(),1),
-   Triple("◈",t("◈ Gastos").removePrefix("◈ ").trim(),2),
+   Triple("◈",t("◈ Gastos").removePrefix("◈ ").trim(),1),
+   Triple("▦",t("▦ Calendario").removePrefix("▦ ").trim(),2),
    Triple("🚗",t("🚗 Mi carro").removePrefix("🚗 ").trim(),3),
    Triple("⚙",t("⚙ Config").removePrefix("⚙ ").trim(),4)
   )
