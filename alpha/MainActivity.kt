@@ -543,7 +543,26 @@ private val translations=mapOf(
  "Quitar ubicación" to listOf("Clear location","Cancella posizione","Effacer la position"),
  "Ubicación guardada" to listOf("Location saved","Posizione salvata","Position enregistrée"),
  "No hay ubicación guardada" to listOf("No saved location","Nessuna posizione salvata","Aucune position enregistrée"),
- "Cerrar mapa" to listOf("Close map","Chiudi mappa","Fermer la carte")
+ "Cerrar mapa" to listOf("Close map","Chiudi mappa","Fermer la carte"),
+ "★ Feriados de este día" to listOf("★ Holidays on this day","★ Festività di questo giorno","★ Jours fériés de ce jour"),
+ "Sin feriados registrados para este día" to listOf("No holidays listed for this day","Nessuna festività registrata per questo giorno","Aucun jour férié enregistré pour ce jour"),
+ "Respaldo de APÚNTALO" to listOf("APÚNTALO backup","Backup di APÚNTALO","Sauvegarde d’APÚNTALO"),
+ "Guarda o recupera tareas, gastos, compras, ajustes y wallpaper. Elige Google Drive en el selector de archivos." to listOf("Save or restore tasks, expenses, shopping, settings and wallpaper. Choose Google Drive in the file picker.","Salva o ripristina attività, spese, acquisti, impostazioni e sfondo. Scegli Google Drive nel selettore file.","Enregistrez ou restaurez tâches, dépenses, achats, réglages et fond d’écran. Choisissez Google Drive dans le sélecteur de fichiers."),
+ "Crear respaldo" to listOf("Create backup","Crea backup","Créer une sauvegarde"),
+ "Restaurar" to listOf("Restore","Ripristina","Restaurer"),
+ "Cantidad inválida" to listOf("Invalid amount","Importo non valido","Montant invalide"),
+ "Repetir este gasto cada mes" to listOf("Repeat this expense every month","Ripeti questa spesa ogni mese","Répéter cette dépense chaque mois"),
+ "Repetir esta tarea todos los días" to listOf("Repeat this task every day","Ripeti questa attività ogni giorno","Répéter cette tâche tous les jours"),
+ "Sincronizar calendario del teléfono" to listOf("Sync phone calendar","Sincronizza calendario del telefono","Synchroniser le calendrier du téléphone"),
+ "Google Calendar y Samsung Calendar: requiere permiso y un calendario editable en el dispositivo." to listOf("Google Calendar and Samsung Calendar: requires permission and an editable calendar on the device.","Google Calendar e Samsung Calendar: richiede autorizzazione e un calendario modificabile sul dispositivo.","Google Calendar et Samsung Calendar : autorisation et calendrier modifiable requis sur l’appareil."),
+ "Gastos: " to listOf("Expenses: ","Spese: ","Dépenses : "),
+ "Límite mensual de " to listOf("Monthly limit for ","Limite mensile per ","Limite mensuelle pour "),
+ "Todo al día ✓" to listOf("All caught up ✓","Tutto aggiornato ✓","Tout est à jour ✓"),
+ "Lista de compras vacía" to listOf("Shopping list is empty","Lista della spesa vuota","Liste de courses vide"),
+ "Sin recordatorios próximos" to listOf("No upcoming reminders","Nessun promemoria imminente","Aucun rappel à venir"),
+ "Sin gastos registrados" to listOf("No recorded expenses","Nessuna spesa registrata","Aucune dépense enregistrée"),
+ "Feriado" to listOf("Holiday","Festività","Jour férié"),
+ "observado" to listOf("observed","osservato","observé")
 )
 private fun holidays(year:Int,month:Int):Map<Int,List<String>>{
  val result=mutableMapOf<Int,MutableList<String>>()
@@ -600,6 +619,31 @@ private fun holidays(year:Int,month:Int):Map<Int,List<String>>{
  relative(-2,"Viernes Santo · PR")
  relative(0,"Domingo de Resurrección · PR")
  return result
+}
+private fun holidayLabel(lang:String,holiday:String):String{
+ if(lang=="es")return holiday
+ var out=holiday
+ val names=mapOf(
+ "Año Nuevo" to listOf("New Year's Day","Capodanno","Jour de l’An"),
+ "Martin Luther King Jr." to listOf("Martin Luther King Jr. Day","Giornata di Martin Luther King Jr.","Journée Martin Luther King Jr."),
+ "Día de Reyes" to listOf("Three Kings Day","Epifania","Épiphanie"),
+ "Día de los Presidentes" to listOf("Presidents' Day","Giorno dei Presidenti","Jour des présidents"),
+ "Día de la Abolición de la Esclavitud" to listOf("Abolition of Slavery Day","Abolizione della schiavitù","Abolition de l’esclavage"),
+ "Día de la Constitución" to listOf("Constitution Day","Giorno della Costituzione","Jour de la Constitution"),
+ "Independencia de EE. UU." to listOf("US Independence Day","Indipendenza degli Stati Uniti","Indépendance des États-Unis"),
+ "Día de los Veteranos" to listOf("Veterans Day","Giorno dei Veterani","Journée des anciens combattants"),
+ "Día del Descubrimiento de Puerto Rico" to listOf("Puerto Rico Discovery Day","Scoperta di Porto Rico","Découverte de Porto Rico"),
+ "Acción de Gracias" to listOf("Thanksgiving","Ringraziamento","Action de grâce"),
+ "Navidad" to listOf("Christmas","Natale","Noël"),
+ "Viernes Santo" to listOf("Good Friday","Venerdì Santo","Vendredi saint"),
+ "Domingo de Resurrección" to listOf("Easter Sunday","Domenica di Pasqua","Dimanche de Pâques"),
+ "EE. UU. y PR" to listOf("US and PR","USA e PR","États-Unis et PR"),
+ "EE. UU." to listOf("US","USA","États-Unis"),
+ "(observado)" to listOf("(observed)","(osservato)","(observé)")
+ )
+ val idx=when(lang){"en"->0;"it"->1;"fr"->2;else->return holiday}
+ for((key,value) in names.entries.sortedByDescending{it.key.length})out=out.replace(key,value[idx])
+ return out
 }
 private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;"fr"->2;else->-1};return if(i<0)key else translations[key]?.get(i)?:key}
 @Composable fun Screen(activity:MainActivity){
@@ -780,9 +824,9 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Spacer(Modifier.height(8.dp))
  val selectedHolidays=monthHolidays[selectedDay].orEmpty()
  if(selectedHolidays.isNotEmpty()){
-  Text("★ Feriados de este día",color=Color(0xFFFFB86B),fontWeight=FontWeight.Bold)
-  selectedHolidays.forEach{holiday->Text("• $holiday",color=Color.White)}
- }else Text("Sin feriados registrados para este día",color=Color.White.copy(alpha=0.65f),style=MaterialTheme.typography.bodySmall)
+  Text(t("★ Feriados de este día"),color=Color(0xFFFFB86B),fontWeight=FontWeight.Bold)
+  selectedHolidays.forEach{holiday->Text("• "+holidayLabel(language,holiday),color=Color.White)}
+ }else Text(t("Sin feriados registrados para este día"),color=Color.White.copy(alpha=0.65f),style=MaterialTheme.typography.bodySmall)
  Text(t("Día \$selectedDay · Toca un día para consultar sus tareas").replace("\$selectedDay",selectedDay.toString()),color=Color.White.copy(alpha=0.7f),style=MaterialTheme.typography.bodySmall)
  }
  }
@@ -823,7 +867,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Text(t("Resumen financiero · ")+SimpleDateFormat("MMMM yyyy",Locale("es","PR")).format(Date()),color=foreground,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
  OutlinedTextField(value=income,onValueChange={income=it;p.edit().putString("income_"+currentMonth,it).putString("income_default",it).apply()},label={Text(t("Ingreso mensual"))},placeholder={Text(t("Ejemplo: $2,000.00"))},singleLine=true)
  val total=expenseTotal(expenses).toDouble()
- Text("Gastos: $%.2f".format(total),color=foreground)
+ Text(t("Gastos: ")+"$%.2f".format(total),color=foreground)
  Card(Modifier.fillMaxWidth().padding(vertical=12.dp),shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=glassPanel)){Column(Modifier.padding(20.dp)){Text(t("BALANCE DISPONIBLE"),color=accent,style=MaterialTheme.typography.labelMedium);Text("$%.2f".format(((moneyValue(income)?.toDouble()?:0.0)-total)),color=Color.White,style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Black);Spacer(Modifier.height(12.dp));LinearProgressIndicator(progress={if((moneyValue(income)?.toDouble()?:0.0)<=0)0f else (total/(moneyValue(income)?.toDouble()?:1.0)).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(7.dp),color=accent,trackColor=Color.White.copy(alpha=0.12f))}}
  val categories=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  val chartColors=listOf(Color(0xFF62C4B4),Color(0xFFFFB86B),Color(0xFF8DA8FF),Color(0xFFCE8DF4),Color(0xFFFF7F91),Color(0xFFADB6C5))
@@ -878,7 +922,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  Text("$%.2f".format(sums[idx])+(if(limit>0)" / $%.2f".format(limit)else""),color=if(limit>0 && sums[idx]>limit)Color(0xFFFF7F91) else Color.White)
  }
  if(budgetEditing){
- OutlinedTextField(limitText,onValueChange={limitText=it;p.edit().putString(key,it).apply()},label={Text("Límite mensual de $cat")},singleLine=true)
+ OutlinedTextField(limitText,onValueChange={limitText=it;p.edit().putString(key,it).apply()},label={Text(t("Límite mensual de ")+t(cat))},singleLine=true)
  }else if(limit>0){
  LinearProgressIndicator(progress={(sums[idx]/limit).toFloat().coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(6.dp),color=if(sums[idx]>=limit)Color(0xFFFF7F91)else chartColors[idx],trackColor=Color.White.copy(alpha=0.12f))
  if(sums[idx]>=limit*0.8)Text(if(sums[idx]>limit)"Presupuesto excedido"else"Te acercas al límite",color=Color(0xFFFFB86B),style=MaterialTheme.typography.labelSmall)
@@ -905,11 +949,11 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  if(configSubTab==0){
  HorizontalDivider()
- Text("Respaldo de APÚNTALO",color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
- Text("Guarda o recupera tareas, gastos, compras, ajustes y wallpaper. Elige Google Drive en el selector de archivos.",color=foreground)
+ Text(t("Respaldo de APÚNTALO"),color=foreground,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+ Text(t("Guarda o recupera tareas, gastos, compras, ajustes y wallpaper. Elige Google Drive en el selector de archivos."),color=foreground)
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
- Button(onClick={activity.createBackup()}){Text("Crear respaldo")}
- OutlinedButton(onClick={activity.restoreBackup()}){Text("Restaurar")}
+ Button(onClick={activity.createBackup()}){Text(t("Crear respaldo"))}
+ OutlinedButton(onClick={activity.restoreBackup()}){Text(t("Restaurar"))}
  }
  }
  if(configSubTab==1){
@@ -1009,8 +1053,8 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  OutlinedTextField(title,{title=it},label={Text(t("Descripción"))})
  if(tab==3){
  OutlinedTextField(amount,{amount=it},label={Text(t("Cantidad"))},isError=amount.isNotBlank()&&moneyValue(amount)==null)
- if(amount.isNotBlank()&&moneyValue(amount)==null)Text("Cantidad inválida",color=Color.Red)
- Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=expenseRecurring,onCheckedChange={expenseRecurring=it});Text("Repetir este gasto cada mes") }
+ if(amount.isNotBlank()&&moneyValue(amount)==null)Text(t("Cantidad inválida"),color=Color.Red)
+ Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=expenseRecurring,onCheckedChange={expenseRecurring=it});Text(t("Repetir este gasto cada mes")) }
  Text(t("Categoría"),style=MaterialTheme.typography.labelMedium)
  val cats=listOf("Hogar","Comida","Transporte","Familia","Salud","Otros")
  cats.chunked(3).forEach{group->Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){
@@ -1018,7 +1062,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }}
  }
  else {
- Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=taskRecurring,onCheckedChange={taskRecurring=it});Text("Repetir esta tarea todos los días")}
+ Row(verticalAlignment=Alignment.CenterVertically){Checkbox(checked=taskRecurring,onCheckedChange={taskRecurring=it});Text(t("Repetir esta tarea todos los días"))}
  Row(verticalAlignment=Alignment.CenterVertically){
  Checkbox(checked=remindMe,onCheckedChange={remindMe=it;if(!it)whenText=""})
  Text(t("Recordarme con notificación"),modifier=Modifier.clickable{remindMe=!remindMe;if(!remindMe)whenText=""})
