@@ -70,8 +70,8 @@ private val card=Color(0xFF252932)
 private val teal=Color(0xFF65B9A5)
 private const val CHANNEL="apuntalo_tasks"
 private fun monthKey(t:Long=System.currentTimeMillis())=SimpleDateFormat("yyyy-MM",Locale.US).format(Date(t))
-private fun fmt(t:Long)=SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(Date(t))
-private fun parse(s:String):Long?=try { SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).apply{isLenient=false}.parse(s)?.time }catch(_:Exception){null}
+private fun fmt(t:Long)=SimpleDateFormat("dd/MM/yyyy h:mm a",Locale.US).format(Date(t))
+private fun parse(s:String):Long?=listOf("dd/MM/yyyy h:mm a","dd/MM/yyyy hh:mm a","dd/MM/yyyy HH:mm").firstNotNullOfOrNull{pattern->runCatching{SimpleDateFormat(pattern,Locale.US).apply{isLenient=false}.parse(s)?.time}.getOrNull()}
 private fun moneyValue(raw:String):java.math.BigDecimal?{
  val cleaned=raw.trim().replace(Regex("[\\s\\$€£]"),"")
  if(cleaned.isEmpty())return null
