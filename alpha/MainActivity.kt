@@ -658,7 +658,7 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  val allExpenses=remember(tick,backupRevision){read(p,"expenses")}
  val expenses=remember(tick,currentMonth){JSONArray().also{out->for(i in 0 until allExpenses.length()){val e=allExpenses.getJSONObject(i);if(e.optString("month",monthKey(e.optLong("id",System.currentTimeMillis())))==currentMonth)out.put(e)}}}
  val shopping=remember(tick,backupRevision){read(p,"shopping")}
- var language by remember{mutableStateOf(p.getString("language","es")?:"es")}
+ var language by remember(backupRevision){mutableStateOf(p.getString("language","es")?:"es")}
  fun t(value:String)=tr(language,value)
  var mainTab by remember{mutableIntStateOf(0)}
  var tasksSubTab by remember{mutableIntStateOf(0)}
@@ -678,13 +678,13 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  var shoppingEditingId by remember{mutableLongStateOf(0L)}
  var configSubTab by remember{mutableIntStateOf(0)}
  var budgetEditing by remember{mutableStateOf(false)}
- var income by remember{mutableStateOf(p.getString("income_"+monthKey(),p.getString("income_default","0"))?:"0")}
+ var income by remember(backupRevision){mutableStateOf(p.getString("income_"+monthKey(),p.getString("income_default","0"))?:"0")}
  var editing by remember{mutableLongStateOf(0)}
  val themes=listOf("Midnight","OLED Black","Ocean","Emerald","Purple Haze","Burgundy","Graphite","Arctic","Pure White","Forest","Sunset","Cyberpunk","Dracula","Military","Crimson")
- var randomTheme by remember{mutableStateOf(p.getBoolean("random_theme",false))}
- var theme by remember{mutableStateOf(if(p.getBoolean("random_theme",false))themes.random().also{p.edit().putString("theme",it).apply()} else p.getString("theme","Midnight")?:"Midnight")}
- var notificationsEnabled by remember{mutableStateOf(p.getBoolean("notifications_enabled",true))}
- var wallpaperDim by remember{mutableFloatStateOf(p.getFloat("wallpaper_dim",1f))}
+ var randomTheme by remember(backupRevision){mutableStateOf(p.getBoolean("random_theme",false))}
+ var theme by remember(backupRevision){mutableStateOf(if(p.getBoolean("random_theme",false))themes.random().also{p.edit().putString("theme",it).apply()} else p.getString("theme","Midnight")?:"Midnight")}
+ var notificationsEnabled by remember(backupRevision){mutableStateOf(p.getBoolean("notifications_enabled",true))}
+ var wallpaperDim by remember(backupRevision){mutableFloatStateOf(p.getFloat("wallpaper_dim",1f))}
  val accent=when(theme){
  "Crimson"->Color(0xFFFF6079);"Ocean"->Color(0xFF59B8EA);"Emerald"->Color(0xFF55D6A1)
  "Purple Haze"->Color(0xFFBB8CF5);"Burgundy"->Color(0xFFE287A0);"Sunset"->Color(0xFFFFA16D)
