@@ -1070,7 +1070,6 @@ private fun tr(lang:String,key:String):String {val i=when(lang){"en"->0;"it"->1;
  }
  }
  }
- }
  if(add)AlertDialog(onDismissRequest={add=false},title={Text(if(tab==3)"Gasto" else "Tarea")},text={
  Column {
  OutlinedTextField(title,{title=it},label={Text(t("Descripción"))})
